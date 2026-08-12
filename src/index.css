@@ -1,77 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --color-primary: #b3261e; /* Primary Red */
-  --color-primary-container: #8c1d18; /* Darker Red */
-  --color-on-primary-container: #ffffff;
-  --color-secondary: #775652; 
-  --color-secondary-container: #f5ece2; /* Warm Beige */
-  --color-on-secondary-container: #b3261e;
-  
-  --color-background: #faf6f0; /* Soft Beige Background */
-  --color-on-background: #201a19;
-  
+  --color-primary: #825500;
+  --color-primary-container: #f4a300;
+  --color-on-primary-container: #613e00;
+  --color-secondary: #5f5e5e;
+  --color-secondary-container: #e5e2e1;
+  --color-on-secondary-container: #474646;
+  --color-tertiary: #c00018;
+  --color-on-tertiary: #ffffff;
+  --color-background: #f5fafe;
+  --color-on-background: #171c1f;
   --color-surface: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f7f2eb;
-  --color-surface-container: #f5ece2; /* Warm Beige */
-  --color-surface-container-high: #efe5d9;
-  --color-surface-container-highest: #e4d6c7; /* Darker Beige */
-  --color-on-surface: #b3261e; /* Primary red as on-surface */
-  --color-on-surface-variant: #775652; 
-  
-  --color-outline: #e4d6c7; /* Darker Beige */
-  --color-outline-variant: #e4d6c7; 
+  --color-surface-container-low: #eff4f8;
+  --color-surface-container: #eaeef2;
+  --color-surface-container-high: #e4e9ed;
+  --color-surface-container-highest: #dee3e7;
+  --color-on-surface: #171c1f;
+  --color-on-surface-variant: #524533;
+  --color-outline: #857461;
+  --color-outline-variant: #d7c3ad;
   --color-error: #ba1a1a;
-  
-  --color-parchment: #f5ece2; /* Warm Beige */
-  --color-neutral-border: #e4d6c7; /* Darker Beige */
+  --color-parchment: #f5fafe;
+  --color-neutral-border: #d9dee2;
+  --color-inverse-surface: #2c3134;
+  --color-inverse-on-surface: #ecf1f5;
 }
 
 .dark {
-  --color-primary: #ffb4ab; /* Lighter red for dark mode */
-  --color-primary-container: #8c1d18; 
+  --color-primary: #ffb951;
+  --color-primary-container: #825500;
   --color-on-primary-container: #ffffff;
-  --color-secondary: #e4d6c7; 
-  --color-secondary-container: #332624; /* Deep dark warm grey */
-  --color-on-secondary-container: #ffb4ab;
-  
-  --color-background: #201a19; /* Deep dark reddish grey */
-  --color-on-background: #ede0de; /* Crisp off-white */
-  
-  --color-surface: #261f1e; /* Slightly lighter dark grey for cards */
-  --color-surface-container-lowest: #1a1514;
-  --color-surface-container-low: #201a19;
-  --color-surface-container: #2b2220; /* Warm dark gray container */
-  --color-surface-container-high: #382d2b;
-  --color-surface-container-highest: #4e403d;
-  --color-on-surface: #ffb4ab; /* Lighter primary red on dark */
-  --color-on-surface-variant: #d8c2bf; 
-  
-  --color-outline: #4e403d; 
-  --color-outline-variant: #4e403d; 
-  --color-error: #ffb4ab;
-  
-  --color-parchment: #2b2220; 
-  --color-neutral-border: #4e403d; 
+  --color-secondary: #d0d4d8;
+  --color-secondary-container: #2c3134;
+  --color-on-secondary-container: #ecf1f5;
+  --color-tertiary: #ffb3ac;
+  --color-on-tertiary: #410003;
+  --color-background: #1f2427;
+  --color-on-background: #ecf1f5;
+  --color-surface: #2c3134;
+  --color-surface-container-lowest: #171c1f;
+  --color-surface-container-low: #1f2427;
+  --color-surface-container: #2a2f32;
+  --color-surface-container-high: #34393c;
+  --color-surface-container-highest: #3e4448;
+  --color-on-surface: #ecf1f5;
+  --color-on-surface-variant: #c9d0d6;
+  --color-outline: #637079;
+  --color-outline-variant: #49555d;
+  --color-error: #ff8f86;
+  --color-parchment: #2a2f32;
+  --color-neutral-border: #49555d;
+  --color-inverse-surface: #ecf1f5;
+  --color-inverse-on-surface: #171c1f;
 }
 
 @theme {
-  --font-sans: "Roboto Condensed", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Roboto Condensed", sans-serif;
+  --font-sans: "Roboto Flex", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Roboto Flex", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  
+
   --color-primary: var(--color-primary);
   --color-primary-container: var(--color-primary-container);
   --color-on-primary-container: var(--color-on-primary-container);
   --color-secondary: var(--color-secondary);
   --color-secondary-container: var(--color-secondary-container);
   --color-on-secondary-container: var(--color-on-secondary-container);
-  
+  --color-tertiary: var(--color-tertiary);
+  --color-on-tertiary: var(--color-on-tertiary);
   --color-background: var(--color-background);
   --color-on-background: var(--color-on-background);
-  
   --color-surface: var(--color-surface);
   --color-surface-container-lowest: var(--color-surface-container-lowest);
   --color-surface-container-low: var(--color-surface-container-low);
@@ -80,76 +80,107 @@
   --color-surface-container-highest: var(--color-surface-container-highest);
   --color-on-surface: var(--color-on-surface);
   --color-on-surface-variant: var(--color-on-surface-variant);
-  
   --color-outline: var(--color-outline);
-  --color-outline-variant: var(--color-outline-variant); 
+  --color-outline-variant: var(--color-outline-variant);
   --color-error: var(--color-error);
-  
-  --color-parchment: var(--color-parchment); 
-  --color-neutral-border: var(--color-neutral-border); 
+  --color-parchment: var(--color-parchment);
+  --color-neutral-border: var(--color-neutral-border);
+  --color-inverse-surface: var(--color-inverse-surface);
+  --color-inverse-on-surface: var(--color-inverse-on-surface);
 }
 
 @layer base {
+  html {
+    color-scheme: light;
+  }
+
   body {
     font-family: var(--font-sans);
-    background-color: var(--color-background);
+    background:
+      radial-gradient(circle at top left, rgba(130, 85, 0, 0.08), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(97, 62, 0, 0.06), transparent 28%),
+      var(--color-background);
     color: var(--color-on-background);
   }
-  
+
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
   }
-  
+
   .font-mono {
     font-family: var(--font-mono);
   }
+
+  * {
+    border-color: var(--color-neutral-border);
+  }
 }
 
-/* Custom baseline alignment and spacing utilities */
-.table-border-b {
-  border-bottom: 1px solid var(--color-neutral-border);
-}
-.card-border {
-  border: 1px solid var(--color-neutral-border);
-}
-.py-baseline-2 {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-.px-baseline-3 {
-  padding-left: 12px;
-  padding-right: 12px;
-}
+/* Keep older feature surfaces aligned with the current Industrial Precision palette. */
+[class*="bg-[#A32626]"],
+[class*="bg-[#a32626]"] { background-color: var(--color-primary) !important; }
+[class*="text-[#A32626]"],
+[class*="text-[#a32626]"] { color: var(--color-primary) !important; }
+[class*="border-[#A32626]"],
+[class*="border-[#a32626]"] { border-color: var(--color-primary) !important; }
+[class*="bg-[#7f1d1d]"],
+[class*="bg-[#842323]"],
+[class*="bg-[#6f1919]"] { background-color: var(--color-inverse-surface) !important; }
+[class*="text-[#fff6ec]"] { color: var(--color-inverse-on-surface) !important; }
+[class*="bg-[#F2E8D8]"],
+[class*="bg-[#f2e8d8]"],
+[class*="bg-[#fffaf4]"],
+[class*="bg-[#fff8f1]"],
+[class*="bg-[#fff8f0]"],
+[class*="bg-[#f6eee4]"],
+[class*="bg-[#f6ede3]"] { background-color: var(--color-surface-container-low) !important; }
+[class*="border-[#E5DED5]"],
+[class*="border-[#e5ded5]"],
+[class*="border-[#D8CFC4]"],
+[class*="border-[#d8cfc4]"],
+[class*="border-[#e2d4c4]"] { border-color: var(--color-neutral-border) !important; }
+[class*="bg-[#D8CFC4]"],
+[class*="bg-[#d8cfc4]"] { background-color: var(--color-outline-variant) !important; }
+[class*="text-[#333333]"],
+[class*="text-[#333]"] { color: var(--color-on-surface) !important; }
+[class*="text-[#6B6B6B]"],
+[class*="text-[#6b6b6b]"],
+[class*="text-[#5a352b]"] { color: var(--color-on-surface-variant) !important; }
+[class*="accent-[#A32626]"],
+[class*="accent-[#a32626]"] { accent-color: var(--color-primary) !important; }
 
-/* Global Dark Mode High-Contrast Overrides */
-.dark .bg-white {
-  background-color: var(--color-surface) !important;
-}
+.table-border-b { border-bottom: 1px solid var(--color-neutral-border); }
+.card-border { border: 1px solid var(--color-neutral-border); }
+.py-baseline-2 { padding-top: 8px; padding-bottom: 8px; }
+.px-baseline-3 { padding-left: 12px; padding-right: 12px; }
 
-.dark select, 
-.dark input, 
+.dark .bg-white { background-color: var(--color-surface) !important; }
+.dark select,
+.dark input,
 .dark textarea {
   background-color: var(--color-surface-container) !important;
   color: var(--color-on-background) !important;
   border-color: var(--color-neutral-border) !important;
 }
-
 .dark .bg-gray-50,
 .dark .bg-gray-100,
 .dark .bg-gray-200,
 .dark .bg-neutral-50,
 .dark .bg-neutral-100,
-.dark .bg-neutral-200 {
+.dark .bg-neutral-200,
+.dark .bg-zinc-50,
+.dark .bg-zinc-100,
+.dark .bg-slate-50 {
   background-color: var(--color-surface-container) !important;
 }
-
 .dark .border-gray-200,
 .dark .border-gray-300,
-.dark .border-neutral-200 {
+.dark .border-neutral-200,
+.dark .border-zinc-200,
+.dark .border-slate-200 {
   border-color: var(--color-neutral-border) !important;
 }
-
 .dark .text-gray-500,
 .dark .text-gray-600,
 .dark .text-gray-700,
@@ -157,37 +188,37 @@
 .dark .text-neutral-500,
 .dark .text-neutral-600,
 .dark .text-neutral-700,
-.dark .text-neutral-800 {
+.dark .text-neutral-800,
+.dark .text-zinc-500,
+.dark .text-zinc-600,
+.dark .text-zinc-700,
+.dark .text-zinc-800 {
   color: var(--color-on-surface-variant) !important;
 }
-
 .dark .text-gray-900,
-.dark .text-neutral-900 {
+.dark .text-neutral-900,
+.dark .text-zinc-900 {
   color: var(--color-on-background) !important;
 }
+.dark .text-primary { color: var(--color-primary) !important; }
 
-.dark .text-primary {
-  color: var(--color-primary) !important;
-}
-
-/* Custom premium loader animations for Entity Switch */
 @keyframes pulse-glow {
   0%, 100% {
     transform: scale(1);
-    opacity: 0.8;
-    filter: drop-shadow(0 0 10px var(--color-primary));
+    opacity: 0.82;
+    filter: drop-shadow(0 0 10px rgba(244, 163, 0, 0.28));
   }
   50% {
-    transform: scale(1.12);
+    transform: scale(1.08);
     opacity: 1;
-    filter: drop-shadow(0 0 25px var(--color-primary));
+    filter: drop-shadow(0 0 24px rgba(244, 163, 0, 0.4));
   }
 }
 
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -196,57 +227,15 @@
 }
 
 @keyframes spin-reverse {
-  from {
-    transform: rotate(360deg);
-  }
-  to {
-    transform: rotate(0deg);
-  }
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s infinite ease-in-out;
-}
+.animate-pulse-glow { animation: pulse-glow 2s infinite ease-in-out; }
+.animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-spin-slow { animation: spin 8s linear infinite; }
+.animate-spin-reverse-slow { animation: spin-reverse 10s linear infinite; }
 
-.animate-fade-in {
-  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-spin-slow {
-  animation: spin 8s linear infinite;
-}
-
-.animate-spin-reverse-slow {
-  animation: spin-reverse 10s linear infinite;
-}
-
-@media print {
-  .appraisal-no-print {
-    display: none !important;
-  }
-
-  body {
-    background: #ffffff !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}
-
-/* Custom View Transition Page cross-fade timings and reduction behavior */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.5s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
-}
-
-/* Premium FilePond Style Customizations */
 .filepond--root {
   font-family: var(--font-sans);
   margin-bottom: 0;
@@ -273,34 +262,24 @@
   background-color: var(--color-primary);
 }
 
-/* Custom premium scrollbar for smooth sidebar scrolling */
 .style-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(247, 240, 224, 0.2) transparent;
+  scrollbar-color: rgba(130, 85, 0, 0.28) transparent;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
-
-.style-scrollbar::-webkit-scrollbar {
-  width: 5px;
-}
-
-.style-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+.style-scrollbar::-webkit-scrollbar { width: 5px; }
+.style-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .style-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(247, 240, 224, 0.2);
+  background-color: rgba(130, 85, 0, 0.28);
   border-radius: 20px;
   border: 1px solid transparent;
   transition: background-color 0.2s ease;
 }
-
 .style-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(247, 240, 224, 0.4);
+  background-color: rgba(130, 85, 0, 0.44);
 }
 
-/* @media print stylesheet for premium, high-fidelity payslip print output */
 @media print {
   html, body {
     background-color: white !important;
@@ -311,17 +290,15 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  
-  /* Hide all dashboard chrome, sidebar, and control toolbars */
+
   body * {
     visibility: hidden;
   }
-  
-  /* Show only the payslip document container */
+
   #payslip-pdf-content, #payslip-pdf-content * {
     visibility: visible;
   }
-  
+
   #payslip-pdf-content {
     position: absolute !important;
     left: 0 !important;
@@ -334,7 +311,7 @@
     box-shadow: none !important;
     transform: none !important;
   }
-  
+
   @page {
     size: A4 portrait;
     margin: 15mm 10mm 15mm 10mm;

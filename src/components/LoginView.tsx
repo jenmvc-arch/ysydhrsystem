@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   UserRound,
 } from 'lucide-react';
-import { MOCK_USERS, UserAccount } from '../data';
+import { UserAccount } from '../data';
 import { googleSheetsClient, isGoogleConfigured } from '../lib/googleSheetsClient';
 import {
   employeeSupabase,
@@ -221,26 +221,16 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           setError(securePayload.error || 'Invalid username or password.');
           return;
         }
-        // A missing local API server is allowed to use the existing offline
-        // demo accounts so the localhost preview remains usable.
+        // A missing local API server falls through to the configured remote
+        // authentication path without exposing local demo credentials.
       } catch (secureError) {
         console.warn('[Admin Auth] Secure session endpoint unavailable:', secureError);
       }
     }
 
     const performLocalFallback = async () => {
-      const credentialMatch = MOCK_USERS.find(
-        u => u.email === email.trim().toLowerCase() && u.password === password
-      );
-      if (credentialMatch && accountMatchesSelectedPortal(credentialMatch)) {
-        await completeLogin(credentialMatch);
-      } else if (credentialMatch) {
-        setIsLoading(false);
-        setError(getPortalMismatchMessage(credentialMatch.role));
-      } else {
-        setIsLoading(false);
-        setError('Invalid username or password. Please try again.');
-      }
+      setIsLoading(false);
+      setError('No local accounts are configured. Connect the HR database or ask an administrator to provision your account.');
     };
 
     const performRemoteAuth = async (client: any, sourceName: string) => {
@@ -280,18 +270,9 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         const credentialMatch = users.find(
           (u: any) => String(u.email).toLowerCase() === email.trim().toLowerCase() && String(u.password) === password
         );
-        let matched = credentialMatch && accountMatchesSelectedPortal(credentialMatch)
+        const matched = credentialMatch && accountMatchesSelectedPortal(credentialMatch)
           ? credentialMatch
           : undefined;
-
-        if (!matched && users.length === 0) {
-          const fallbackUser = MOCK_USERS.find(
-            u => u.email === email.trim().toLowerCase() && u.password === password
-          );
-          if (fallbackUser && accountMatchesSelectedPortal(fallbackUser)) {
-            matched = fallbackUser;
-          }
-        }
 
         if (matched) {
           await completeLogin({
@@ -327,55 +308,55 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-[#F2E8D8] to-[#FFF8EF] p-4 select-text relative overflow-hidden font-sans text-[#333333]">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-container-low to-surface-container-high p-4 select-text relative overflow-hidden font-sans text-on-background">
       
       {/* Background Accents (Minimal Red Curves) */}
       <div className="absolute top-0 left-0 w-64 h-full pointer-events-none opacity-20">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-[#A32626] fill-current">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-primary fill-current">
           <path d="M0,0 C50,30 20,70 0,100 Z" />
         </svg>
       </div>
       <div className="absolute bottom-0 right-0 w-96 h-64 pointer-events-none opacity-20">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-[#A32626] fill-current">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-primary fill-current">
           <path d="M100,100 C60,80 80,30 100,0 Z" />
         </svg>
       </div>
       
       {/* Optional subtle dotted pattern in corners */}
-      <div className="absolute top-4 left-4 w-32 h-32 bg-[radial-gradient(#A32626_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none"></div>
-      <div className="absolute bottom-4 right-4 w-32 h-32 bg-[radial-gradient(#A32626_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none"></div>
+      <div className="absolute top-4 left-4 w-32 h-32 bg-[radial-gradient(#825500_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none"></div>
+      <div className="absolute bottom-4 right-4 w-32 h-32 bg-[radial-gradient(#825500_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none"></div>
 
       {/* Main Container */}
       <div className="w-full max-w-md relative z-10 flex flex-col items-center">
         
         {/* Logo at the top center */}
-        <img 
-          src="/redpoint-logo.png" 
-          alt="RedPoint Sdn Bhd Logo" 
-          className="h-16 w-auto mb-8 object-contain drop-shadow-sm" 
-          onError={(e) => {
-            // Fallback if logo is missing
-            e.currentTarget.style.display = 'none';
-            e.currentTarget.parentElement?.insertAdjacentHTML('afterbegin', '<div class="text-[#A32626] font-bold text-2xl mb-8 tracking-tight">RedPoint HRMS</div>');
-          }}
-        />
+          <img
+            src="/redpoint-logo.png"
+            alt="HR Precision Console logo"
+            className="h-16 w-auto mb-8 object-contain drop-shadow-sm"
+            onError={(e) => {
+              // Fallback if logo is missing
+              e.currentTarget.style.display = 'none';
+            e.currentTarget.parentElement?.insertAdjacentHTML('afterbegin', '<div class="text-primary font-bold text-2xl mb-8 tracking-tight">HR Precision Console</div>');
+            }}
+          />
 
         {/* Login Card */}
-        <div className="w-full bg-[#FFFFFF] rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-[#E5E5E5] p-8">
+        <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgba(20,24,28,0.08)] border border-neutral-border p-8">
           
           <div className="text-center mb-8">
-            <h2 className="text-xl font-bold text-[#333333]">
+            <h2 className="text-xl font-bold text-on-background">
               {loginPortal === 'admin' ? 'Admin User Sign In' : 'Employee Sign In'}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-on-surface-variant mt-1">
               {loginPortal === 'admin'
-                ? 'Access the RedPoint HRMS administration console'
+                ? 'Access the Industrial Precision HR console'
                 : 'Access your personal employee workspace'}
             </p>
           </div>
 
           {/* Login Portal Switch */}
-          <div className="mb-6 rounded-2xl border border-[#EBDCCB] bg-[#FFF8EF] p-1.5">
+          <div className="mb-6 rounded-2xl border border-neutral-border bg-surface-container-low p-1.5">
             <div className="grid grid-cols-2 gap-1.5">
               {([
                 {
@@ -399,13 +380,13 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                     onClick={() => handlePortalChange(id)}
                     className={`flex min-h-[66px] items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
                       isActive
-                        ? 'bg-white text-[#A32626] shadow-sm ring-1 ring-[#A32626]/15'
-                        : 'text-[#7A625A] hover:bg-white/70'
+                        ? 'bg-white text-primary shadow-sm ring-1 ring-primary/15'
+                        : 'text-on-surface-variant hover:bg-white/70'
                     }`}
                     aria-pressed={isActive}
                   >
                     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                      isActive ? 'bg-[#A32626]/10' : 'bg-white/70'
+                      isActive ? 'bg-primary/10' : 'bg-white/70'
                     }`}>
                       <Icon className="h-4 w-4" />
                     </span>
@@ -421,8 +402,8 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
           {/* Error Notification HUD */}
           {error && (
-            <div className="mb-6 p-4 bg-[#FFF8EF] border border-[#A32626]/30 text-[#8F1F1F] text-sm rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-[#A32626]" />
+            <div className="mb-6 p-4 bg-error/10 border border-error/30 text-error text-sm rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-error" />
               <span className="leading-relaxed">{error}</span>
             </div>
           )}
@@ -438,11 +419,11 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             
             {/* Username Input Group */}
             <div>
-              <label className="block text-sm font-semibold text-[#333333] mb-1.5">
+              <label className="block text-sm font-semibold text-on-background mb-1.5">
                 Username
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant">
                   <Mail className="w-5 h-5" />
                 </span>
                 <input
@@ -451,18 +432,18 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your username"
-                  className="w-full h-12 pl-11 pr-4 bg-white border border-[#E5E5E5] rounded-xl text-sm text-[#333333] placeholder-gray-400 focus:outline-none focus:border-[#A32626] focus:ring-1 focus:ring-[#A32626]/30 transition-all"
+                  className="w-full h-12 pl-11 pr-4 bg-white border border-neutral-border rounded-xl text-sm text-on-background placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                 />
               </div>
             </div>
 
             {/* Password Input Group */}
             <div>
-              <label className="block text-sm font-semibold text-[#333333] mb-1.5">
+              <label className="block text-sm font-semibold text-on-background mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant">
                   <Lock className="w-5 h-5" />
                 </span>
                 <input
@@ -471,12 +452,12 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full h-12 pl-11 pr-11 bg-white border border-[#E5E5E5] rounded-xl text-sm text-[#333333] placeholder-gray-400 focus:outline-none focus:border-[#A32626] focus:ring-1 focus:ring-[#A32626]/30 transition-all"
+                  className="w-full h-12 pl-11 pr-11 bg-white border border-neutral-border rounded-xl text-sm text-on-background placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant hover:text-on-background focus:outline-none"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -491,9 +472,9 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-[#E5E5E5] text-[#A32626] focus:ring-[#A32626] focus:ring-offset-0 cursor-pointer accent-[#A32626]"
+                  className="w-4 h-4 rounded border-neutral-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer accent-primary"
                 />
-                <span className="text-sm text-gray-600 group-hover:text-[#333333] transition-colors">Remember Me</span>
+                <span className="text-sm text-on-surface-variant group-hover:text-on-background transition-colors">Remember Me</span>
               </label>
               
               <a 
@@ -502,11 +483,11 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   e.preventDefault();
                   alert(
                     loginPortal === 'admin'
-                      ? 'Admin accounts are provisioned by HR.\n\nDemo Admin Username: hr.redpoint\nPassword: admin123#'
+                      ? 'Admin accounts are provisioned by HR.'
                       : 'Employee accounts use the company-issued username and temporary password.\n\nIf you do not have your credentials, please contact HR.'
                   );
                 }}
-                className="text-sm text-[#A32626] hover:text-[#8F1F1F] font-semibold transition-colors"
+                className="text-sm text-primary hover:text-primary-container font-semibold transition-colors"
               >
                 Forgot Password?
               </a>
@@ -516,7 +497,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full h-12 mt-4 bg-[#A32626] hover:bg-[#8F1F1F] text-white text-base font-semibold rounded-xl shadow-md shadow-[#A32626]/20 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#A32626]/50 focus:ring-offset-1 ${
+              className={`w-full h-12 mt-4 bg-primary hover:bg-primary-container text-white text-base font-semibold rounded-xl shadow-md shadow-primary/20 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 ${
                 isLoading ? 'opacity-80 cursor-wait' : 'hover:-translate-y-0.5'
               }`}
             >
@@ -535,10 +516,10 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
             {loginPortal === 'employee' && (
               <a
-                href="/employee-portal/demo?employeeId=EMP-84729"
-                className="mt-3 w-full h-11 inline-flex items-center justify-center rounded-xl border border-[#A32626]/20 bg-[#FFF8EF] text-sm font-semibold text-[#A32626] hover:bg-[#F9EBDD] transition-colors"
+                href="/employee-portal/demo"
+                className="mt-3 w-full h-11 inline-flex items-center justify-center rounded-xl border border-primary/20 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
               >
-                Open employee demo
+                Open employee preview
               </a>
             )}
           </form>
@@ -549,7 +530,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
       {/* Footer */}
       <footer className="absolute bottom-6 w-full text-center z-10">
         <p className="text-sm font-medium text-gray-500">
-          © 2026 RedPoint HRMS. All rights reserved.
+          © 2026 HR Precision Console. All rights reserved.
         </p>
       </footer>
 

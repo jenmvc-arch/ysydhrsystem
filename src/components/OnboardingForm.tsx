@@ -243,7 +243,7 @@ export default function OnboardingForm({
       setPhone('');
       setDesignation(availableRoles[0] || '');
       setDepartment(availableDepartments[0] || '');
-      setEntityId(entities[0]?.id || 'ENT-92');
+      setEntityId(entities[0]?.id || '');
       return;
     }
 
@@ -254,14 +254,14 @@ export default function OnboardingForm({
       setPhone(cand.phone);
       setDesignation(cand.designation);
       setDepartment(cand.department || 'Engineering');
-      setEntityId(cand.entityId || entities[0]?.id || 'ENT-92');
+      setEntityId(cand.entityId || entities[0]?.id || '');
     }
   }, [selectedCandidateId, candidates, entities, availableDepartments, availableRoles]);
 
   // Handle entity initialization
   useEffect(() => {
     if (!entityId) {
-      setEntityId(entities[0]?.id || 'ENT-92');
+      setEntityId(entities[0]?.id || '');
     }
   }, [entities, entityId]);
 
@@ -394,7 +394,7 @@ export default function OnboardingForm({
       
       const newEmployee: Employee = {
         id: newEmpId,
-        entityId: entityId || entities[0]?.id || 'ENT-92',
+        entityId: entityId || entities[0]?.id || '',
         name: fullName.toUpperCase(),
         email: email.toLowerCase(),
         designation: designation,

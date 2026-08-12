@@ -323,7 +323,7 @@ export default function JobApplicationForm({
           phone: `${countryCode} ${phoneNum}`,
           designation: positionApplied || 'Applicant',
           department: 'Engineering',
-          entityId: 'ENT-92',
+          entityId: '',
           stage: overallRecommendation === 'Strong Hire' || overallRecommendation === 'Hire' ? 'Offered' : 'Applied',
           progress: 0,
           dateJoined: reportDate || getGmt8DateString(),

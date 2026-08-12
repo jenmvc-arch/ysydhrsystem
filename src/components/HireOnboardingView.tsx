@@ -82,7 +82,7 @@ export default function HireOnboardingView({
   currentUserRole
 }: HireOnboardingViewProps) {
   const [tasks, setTasks] = useState<OnboardingTask[]>(INITIAL_ONBOARDING_TASKS);
-  const [selectedCandidateId, setSelectedCandidateId] = useState('CAN-01');
+  const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [activeTab, setActiveTab] = useState<HireOnboardingSection>(() => (
     getHireOnboardingSectionFromPath(window.location.pathname)
   ));
@@ -133,7 +133,7 @@ export default function HireOnboardingView({
       phone: formData.phone,
       designation: formData.designation,
       department: formData.department || availableDepartments[0] || 'Human Resources',
-      entityId: formData.entityId || entities[0]?.id || 'ENT-92',
+      entityId: formData.entityId || entities[0]?.id || '',
       stage: formData.stage || 'Applied',
       progress: Number(formData.progress || 0),
       dateJoined: formData.dateJoined || getGmt8DateString()
@@ -164,7 +164,7 @@ export default function HireOnboardingView({
   const [candPhone, setCandPhone] = useState('');
   const [candRole, setCandRole] = useState('');
   const [candDept, setCandDept] = useState('Engineering');
-  const [candEntity, setCandEntity] = useState(entities[0]?.id || 'ENT-92');
+  const [candEntity, setCandEntity] = useState(entities[0]?.id || '');
   const [isSavingCandidate, setIsSavingCandidate] = useState(false);
   const [candErrors, setCandErrors] = useState<{ [key: string]: string }>({});
 
@@ -219,7 +219,7 @@ export default function HireOnboardingView({
         phone: candPhone,
         designation: candRole,
         department: candDept,
-        entityId: candEntity || entities[0]?.id || 'ENT-92',
+        entityId: candEntity || entities[0]?.id || '',
         stage: 'Applied',
         progress: 0,
         dateJoined: getGmt8DateString()

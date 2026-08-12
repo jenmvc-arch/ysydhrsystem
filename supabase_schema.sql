@@ -237,13 +237,6 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- SEED INITIAL ENTITIES
-INSERT INTO public.corporate_entities (id, name, registration_number, currency, is_active)
-VALUES 
-  ('ENT-92', 'Red Point Sdn Bhd', '202601009988', 'MYR', true),
-  ('ENT-86', 'YSYD Sdn Bhd', '202601007766', 'MYR', true)
-ON CONFLICT (id) DO NOTHING;
-
 -- ENABLE ROW LEVEL SECURITY (RLS) & PUBLIC POLICIES FOR ANONYMOUS APP ACCESS
 ALTER TABLE public.corporate_entities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;

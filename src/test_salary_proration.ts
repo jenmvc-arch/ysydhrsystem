@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {
-  INITIAL_EMPLOYEES,
   calculatePayslip,
   getEmployeeForMonth,
   getPayrollBasicSalary,
@@ -8,6 +7,7 @@ import {
   seedSocsoConfigurationsAndBrackets
 } from './data';
 import type { Employee } from './types';
+import { createTestEmployee } from './testFixtures';
 
 const storage = new Map<string, string>();
 (globalThis as any).localStorage = {
@@ -19,7 +19,7 @@ const storage = new Map<string, string>();
 seedSocsoConfigurationsAndBrackets();
 
 const createEmployee = (updates: Partial<Employee> = {}): Employee => ({
-  ...INITIAL_EMPLOYEES[0],
+  ...createTestEmployee(),
   basicSalary: 3100,
   dateOfJoined: '2020-01-01',
   salaryAdjustments: [],

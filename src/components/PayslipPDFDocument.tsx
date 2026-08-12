@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'stretch',
     borderBottomWidth: 3,
-    borderBottomColor: '#A32626',
+    borderBottomColor: '#825500',
     paddingBottom: 8,
     marginBottom: 10,
   },
@@ -53,13 +53,13 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 12,
-    color: '#A32626',
+    color: '#825500',
     fontFamily: 'Helvetica-Bold',
   },
   companyName: {
     fontSize: 14.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#A32626',
+    color: '#825500',
     marginBottom: 3,
     lineHeight: 1.15,
   },
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     lineHeight: 1.2,
   },
   rightHeaderBlock: {
-    backgroundColor: '#A32626',
+    backgroundColor: '#825500',
     paddingHorizontal: 12,
     paddingVertical: 6,
     justifyContent: 'center',
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     minWidth: 90,
   },
   rightHeaderLabel: {
-    color: '#F2E8D8',
+    color: '#f5fafe',
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     letterSpacing: 1,
@@ -97,9 +97,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   detailsCard: {
-    backgroundColor: '#F2E8D8',
+    backgroundColor: '#eff4f8',
     borderWidth: 1,
-    borderColor: '#E5DED5',
+    borderColor: '#d9dee2',
     borderRadius: 5,
     padding: 8,
     marginBottom: 10,
@@ -108,14 +108,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5DED5',
+    borderBottomColor: '#d9dee2',
     paddingBottom: 2,
     marginBottom: 4,
   },
   detailsTitle: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#A32626',
+    color: '#825500',
     textTransform: 'uppercase',
   },
   employeeName: {
@@ -163,13 +163,13 @@ const styles = StyleSheet.create({
   bankTitle: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#A32626',
+    color: '#825500',
     marginBottom: 3,
   },
   bankBox: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderWidth: 1,
-    borderColor: '#E5DED5',
+    borderColor: '#d9dee2',
     borderRadius: 3,
     padding: 3,
   },
@@ -186,13 +186,13 @@ const styles = StyleSheet.create({
   tableCol: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E5DED5',
+    borderColor: '#d9dee2',
     borderRadius: 5,
     padding: 6,
     backgroundColor: '#ffffff',
   },
   tableHeaderBlock: {
-    backgroundColor: '#A32626',
+    backgroundColor: '#825500',
     borderRadius: 3,
     paddingVertical: 3,
     paddingHorizontal: 6,
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5DED5',
+    borderBottomColor: '#d9dee2',
     paddingBottom: 2,
     marginBottom: 3,
   },
@@ -230,20 +230,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#A32626',
+    borderColor: '#825500',
     paddingVertical: 3,
     marginTop: 4,
   },
   tableTotalText: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#A32626',
+    color: '#825500',
   },
   tableRowSocsoTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 2.5,
-    backgroundColor: '#F2E8D8',
+    backgroundColor: '#eff4f8',
     paddingHorizontal: 3,
     borderRadius: 2,
     marginVertical: 1,
@@ -275,9 +275,9 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: '#F2E8D8',
+    backgroundColor: '#eff4f8',
     borderWidth: 1,
-    borderColor: '#E5DED5',
+    borderColor: '#d9dee2',
     borderRadius: 5,
     padding: 6,
     flexDirection: 'column',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   summaryCardNetPay: {
     flex: 1,
-    backgroundColor: '#A32626',
+    backgroundColor: '#825500',
     borderRadius: 5,
     padding: 6,
     flexDirection: 'column',
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   summaryLabelNetPay: {
     fontSize: 7,
-    color: '#F2E8D8',
+    color: '#f5fafe',
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
   },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   contributionsCard: {
     backgroundColor: '#F2E8D8',
     borderWidth: 1.5,
-    borderColor: '#D8CFC4',
+    borderColor: '#d7c3ad',
     borderRadius: 5,
     padding: 6,
     marginBottom: 10,
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   contributionsTitle: {
     fontSize: 7,
     fontFamily: 'Helvetica-Bold',
-    color: '#A32626',
+    color: '#825500',
     textTransform: 'uppercase',
     marginBottom: 4,
   },
@@ -344,13 +344,13 @@ const styles = StyleSheet.create({
   contributionDivider: {
     width: 1.5,
     height: 16,
-    backgroundColor: '#D8CFC4',
+    backgroundColor: '#d7c3ad',
   },
   footerSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#E5DED5',
+    borderTopColor: '#d9dee2',
     paddingTop: 6,
     marginBottom: 6,
   },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   footerTitle: {
     fontSize: 7,
     fontFamily: 'Helvetica-Bold',
-    color: '#A32626',
+    color: '#825500',
     textTransform: 'uppercase',
     marginBottom: 1,
   },
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     color: '#333333',
   },
   confidentialBar: {
-    backgroundColor: '#A32626',
+    backgroundColor: '#825500',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 3,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   confidentialBarLabel: {
-    color: '#F2E8D8',
+    color: '#f5fafe',
     fontSize: 6.5,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
@@ -596,7 +596,7 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
                 style={styles.logoImage} 
               />
             <View>
-              <Text style={styles.companyName}>{entity?.name || 'Red Point Sdn Bhd'}</Text>
+              <Text style={styles.companyName}>{entity?.name || 'Company not configured'}</Text>
               {entity?.registrationNumber && (
                 <Text style={styles.companyReg}>Co. Reg: {entity.registrationNumber}</Text>
               )}
@@ -955,8 +955,8 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
 
             {/* SOCSO Employer Total */}
             <View style={styles.contributionCol}>
-              <Text style={[styles.detailLabel, { color: '#A32626' }]}>SOCSO Employer Total</Text>
-              <Text style={[styles.detailValue, { color: '#A32626' }]}>{formatCurrency(breakdown.socsoEmployerVal)}</Text>
+              <Text style={[styles.detailLabel, { color: '#825500' }]}>SOCSO Employer Total</Text>
+              <Text style={[styles.detailValue, { color: '#825500' }]}>{formatCurrency(breakdown.socsoEmployerVal)}</Text>
             </View>
 
             <View style={styles.contributionDivider} />
@@ -1000,7 +1000,7 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
         {displaySettings.showNotesFooter && (
         <View style={styles.confidentialBar}>
           <Text style={styles.confidentialBarText}>
-            Thank you for your continued contribution to {entity?.name || 'Red Point Sdn Bhd'}.
+            Thank you for your continued contribution to {entity?.name || 'Company not configured'}.
           </Text>
           <Text style={styles.confidentialBarLabel}>CONFIDENTIAL</Text>
         </View>

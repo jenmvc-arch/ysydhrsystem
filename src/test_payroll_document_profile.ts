@@ -4,10 +4,10 @@ import {
   getPayrollDocumentDisplaySettings,
   getPayrollDocumentFieldLabels,
   getPayrollDocumentProfile,
-  INITIAL_EMPLOYEES,
   seedSocsoConfigurationsAndBrackets
 } from './data';
 import type { Employee } from './types';
+import { createTestEmployee } from './testFixtures';
 
 const storage = new Map<string, string>();
 (globalThis as any).localStorage = {
@@ -19,7 +19,7 @@ const storage = new Map<string, string>();
 seedSocsoConfigurationsAndBrackets();
 
 const createEmployee = (overrides: Partial<Employee> = {}): Employee => ({
-  ...INITIAL_EMPLOYEES[0],
+  ...createTestEmployee(),
   id: overrides.email || overrides.id || 'profile-test@example.com',
   email: overrides.email || 'profile-test@example.com',
   basicSalary: 5000,

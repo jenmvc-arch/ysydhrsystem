@@ -110,6 +110,34 @@ export const googleSheetsClient = {
     return result;
   },
 
+  async clearData(
+    sheetNames: string[],
+    customScriptUrl?: string
+  ): Promise<{ clearedSheets: string[] }> {
+    const targetUrl = customScriptUrl || googleScriptUrl;
+    if (!targetUrl) {
+      return { clearedSheets: [] };
+    }
+    console.log('[Google Sheets Client] Clearing data from sheets:', { sheetNames, targetUrl });
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'clear_data',
+        sheetNames
+      }),
+      redirect: 'follow'
+    });
+    const result = await response.json();
+    if (!result.success) {
+      console.error('[Google Sheets Client Error]', result.error, result.stack);
+      throw new Error(result.error || 'Failed to clear Google Sheets data');
+    }
+    return {
+      clearedSheets: Array.isArray(result.clearedSheets) ? result.clearedSheets : sheetNames
+    };
+  },
+
   async upsert(sheetName: string, query: Record<string, string>, data: any, customScriptUrl?: string): Promise<any> {
     const targetUrl = customScriptUrl || googleScriptUrl;
     if (!targetUrl) return;

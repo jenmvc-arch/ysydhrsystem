@@ -240,10 +240,10 @@ export default function EmployeeDirectoryView({
   const [isAccountActionSaving, setIsAccountActionSaving] = useState(false);
   const accountPreviewMode = isEmployeeAccountPreview();
   const canManageAccountActions = accountPreviewMode || canManageAppAccess(currentUserEmail);
-  const [formEntityId, setFormEntityId] = useState(activeEntityId || entities[0]?.id || 'ENT-92');
+  const [formEntityId, setFormEntityId] = useState(activeEntityId || entities[0]?.id || '');
   
   useEffect(() => {
-    setFormEntityId(activeEntityId || entities[0]?.id || 'ENT-92');
+    setFormEntityId(activeEntityId || entities[0]?.id || '');
   }, [activeEntityId, entities]);
 
   const [formName, setFormName] = useState('');
@@ -471,13 +471,7 @@ export default function EmployeeDirectoryView({
 
   const getScriptUrlForEntity = (entityNameOrId?: string): string | undefined => {
     if (!entityNameOrId) return undefined;
-    let name = entityNameOrId;
-    if (name === 'ENT-01' || name === 'ENT-92') {
-      name = 'Red Point Sdn Bhd';
-    } else if (name === 'ENT-02' || name === 'ENT-86') {
-      name = 'YSYD Sdn Bhd';
-    }
-    const ent = entities.find(e => e.name === name || e.id === name);
+    const ent = entities.find(e => e.name === entityNameOrId || e.id === entityNameOrId);
     return ent?.googleScriptUrl && ent.googleScriptUrl.trim() !== '' 
       ? ent.googleScriptUrl.trim() 
       : undefined;
@@ -853,7 +847,7 @@ export default function EmployeeDirectoryView({
     : null;
 
   const handleOpenAddModal = () => {
-    setFormEntityId(activeEntityId || entities[0]?.id || 'ENT-92');
+    setFormEntityId(activeEntityId || entities[0]?.id || '');
     setFormName('');
     setFormEmail('');
     setFormDesignation(availableRoles[0] || 'Software Engineer');
@@ -1120,7 +1114,7 @@ export default function EmployeeDirectoryView({
 
     const newEmp: Employee = {
       id: formEmail,
-      entityId: formEntityId || activeEntityId || entities[0]?.id || 'ENT-92',
+      entityId: formEntityId || activeEntityId || entities[0]?.id || '',
       name: toUppercase(formName),
       email: formEmail,
       designation: formDesignation,
@@ -2463,13 +2457,13 @@ export default function EmployeeDirectoryView({
               onClick={() => {
                 setViewMode('self-service');
                 // Auto-select first employee to begin simulation
-                const sarah = activeEmployees.find(e => e.id === 'EMP-84729') || activeEmployees[0];
-                if (sarah) {
-                  setPreviewEmployeeId(sarah.id);
-                  setSelfServiceContactNumber(sarah.contactNumber || '');
-                  setSelfServiceEmergencyName(sarah.emergencyContactName || '');
-                  setSelfServiceEmergencyRelation(sarah.emergencyContactRelation || '');
-                  setSelfServiceEmergencyPhone(sarah.emergencyContactPhone || '');
+                const employee = activeEmployees[0];
+                if (employee) {
+                  setPreviewEmployeeId(employee.id);
+                  setSelfServiceContactNumber(employee.contactNumber || '');
+                  setSelfServiceEmergencyName(employee.emergencyContactName || '');
+                  setSelfServiceEmergencyRelation(employee.emergencyContactRelation || '');
+                  setSelfServiceEmergencyPhone(employee.emergencyContactPhone || '');
                 }
               }}
               className="px-3 py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"

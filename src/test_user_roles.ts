@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { MOCK_USERS } from './data';
 import {
   canManageAppAccess,
   hasGlobalAdminPrivileges,
@@ -9,9 +8,6 @@ import {
   isRoleAllowedForLoginPortal,
 } from './lib/userRoles';
 
-const hrAdmin = MOCK_USERS.find((user) => user.email === 'hr.redpoint');
-
-assert.equal(hrAdmin?.role, 'Master User');
 assert.equal(isAdminPortalRole('Master User'), true);
 assert.equal(hasGlobalAdminPrivileges('Master User'), true);
 assert.equal(isEmployeePortalRole('Master User'), false);

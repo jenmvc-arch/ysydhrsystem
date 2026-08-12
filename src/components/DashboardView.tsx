@@ -528,22 +528,12 @@ export default function DashboardView({
                   <p className="text-xs text-on-surface-variant mt-1">Starting Nov 2023, voluntary employee contributions can exceed 11% directly via self-service.</p>
                 </div>
                 
-                 { (selectedEntityId === 'Red Point Sdn Bhd' || selectedEntityId === 'ENT-92') ? (
-                  <div className="p-3 bg-blue-50/50 rounded border-l-4 border-primary text-sm animate-in fade-in duration-300">
-                    <div className="font-semibold text-primary">LHDN Auto-Clearance Audit</div>
-                    <p className="text-xs text-on-surface-variant mt-1">Red Point Sdn Bhd internal audit and clearance reports are scheduled for submission on Dec 15th.</p>
-                  </div>
-                ) : (selectedEntityId === 'YSYD Sdn Bhd' || selectedEntityId === 'ENT-86') ? (
-                  <div className="p-3 bg-teal-50/50 rounded border-l-4 border-teal-600 text-sm animate-in fade-in duration-300">
-                    <div className="font-semibold text-teal-800">Labuan Tax Filings Extended</div>
-                    <p className="text-xs text-on-surface-variant mt-1">YSYD Sdn Bhd international contractor incentive list and Labuan offshore tax deadlines updated to Dec 31st.</p>
-                  </div>
-                ) : (
-                  <div className="p-3 bg-surface-container-low rounded border-l-4 border-outline text-sm">
-                    <div className="font-semibold text-on-surface">Annual Review Timeline Extended</div>
-                    <p className="text-xs text-on-surface-variant mt-1">Self-evaluations must be completed by Nov 5th. Contact HR team for support.</p>
-                  </div>
-                )}
+                <div className="p-3 bg-surface-container-low rounded border-l-4 border-outline text-sm">
+                  <div className="font-semibold text-on-surface">Workspace Directives</div>
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    Configure a company and employee records to activate organization-specific compliance notices.
+                  </p>
+                </div>
               </div>
             </div>
 

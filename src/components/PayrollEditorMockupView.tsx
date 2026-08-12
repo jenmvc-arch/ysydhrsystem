@@ -1153,7 +1153,7 @@ export default function PayrollEditorMockupView({
             </span>
           </div>
           <div className="text-left text-xs sm:text-right">
-            <p className="font-bold text-primary">{activeEntity?.name || 'Red Point Sdn Bhd'}</p>
+            <p className="font-bold text-primary">{activeEntity?.name || 'Company not configured'}</p>
             {displaySettings.showCompanyAddress && (
               <p className="mt-1 max-w-xs text-[10px] leading-relaxed text-on-surface-variant">
                 {activeEntity?.address || 'Company address not configured'}

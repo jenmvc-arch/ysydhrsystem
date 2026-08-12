@@ -24,8 +24,8 @@ var CONFIG = {
     USERS: "users",
     AUDIT_LOGS: "audit_logs"
   },
-  DEFAULT_ENTITY_ID: "ENT-92",
-  DEFAULT_ENTITY_NAME: "Red Point Sdn Bhd"
+  DEFAULT_ENTITY_ID: "",
+  DEFAULT_ENTITY_NAME: ""
 };
 
 /**
@@ -128,7 +128,7 @@ function doPost(e) {
     var action = payload.action;
     var data = payload.data || {};
     var sheetName = payload.sheetName;
-    var entityId = payload.entityId || data.entityId || CONFIG.DEFAULT_ENTITY_ID;
+    var entityId = payload.entityId || data.entityId || "";
 
     console.log(logHeader, "Action:", action, "| Sheet:", sheetName, "| Entity:", entityId, "| Key:", payload.keyName, "=", payload.keyValue);
 
@@ -150,6 +150,47 @@ function doPost(e) {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       var fileUrl = "https://lh3.googleusercontent.com/d/" + file.getId() + "=s800";
       return responseJSON({ success: true, url: fileUrl });
+    }
+
+    // 2.5. Clear record data while preserving each sheet's header row.
+    if (action === "clear_data") {
+      var requestedSheets = Array.isArray(payload.sheetNames) ? payload.sheetNames : [];
+      if (requestedSheets.length === 0) {
+        throw new Error("Clear failed: sheetNames must contain at least one sheet.");
+      }
+
+      var allowedSheets = [
+        CONFIG.SHEETS.ENTITIES,
+        CONFIG.SHEETS.EMPLOYEES,
+        CONFIG.SHEETS.USERS,
+        CONFIG.SHEETS.CANDIDATES,
+        CONFIG.SHEETS.PERFORMANCES,
+        CONFIG.SHEETS.PAYROLL,
+        CONFIG.SHEETS.AUDIT_LOGS
+      ];
+      var clearSs = getSpreadsheet();
+      if (!clearSs) {
+        throw new Error("Spreadsheet reference unavailable.");
+      }
+
+      var clearedSheets = [];
+      requestedSheets.forEach(function(requestedSheetName) {
+        if (allowedSheets.indexOf(requestedSheetName) === -1) {
+          throw new Error("Clear failed: sheet is not an approved data sheet: " + requestedSheetName);
+        }
+        var clearSheet = clearSs.getSheetByName(requestedSheetName);
+        if (!clearSheet) {
+          return;
+        }
+        var lastRow = clearSheet.getLastRow();
+        var lastColumn = clearSheet.getLastColumn();
+        if (lastRow > 1 && lastColumn > 0) {
+          clearSheet.getRange(2, 1, lastRow - 1, lastColumn).clearContent();
+        }
+        clearedSheets.push(requestedSheetName);
+      });
+      SpreadsheetApp.flush();
+      return responseJSON({ success: true, action: "clear_data", clearedSheets: clearedSheets });
     }
 
     initializeDatabase();
@@ -187,12 +228,6 @@ function doPost(e) {
         data.createdAt = nowTimestamp;
       }
       data.updatedAt = nowTimestamp;
-
-      // Ensure entity assignment
-      if (!data.entityId && !data.entityName) {
-        data.entityId = CONFIG.DEFAULT_ENTITY_ID;
-        data.entityName = CONFIG.DEFAULT_ENTITY_NAME;
-      }
 
       var newRow = actualHeaders.map(function(h) {
         var key = String(h).trim();

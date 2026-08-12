@@ -28,12 +28,6 @@ import {
   INITIAL_ENTITIES,
   INITIAL_CANDIDATES,
   UserAccount,
-  MOCK_USERS,
-  SEED_EMPLOYEES,
-  SEED_ENTITIES,
-  SEED_PERFORMANCES,
-  SEED_CANDIDATES,
-  SEED_REVIEW_CYCLES,
   seedSocsoConfigurationsAndBrackets,
   compressLogoFile,
   getPayrollDocumentDisplaySettings,
@@ -92,6 +86,46 @@ const parseOptionalJson = <T,>(value: unknown): T | undefined => {
 };
 
 const REMOTE_DATA_LOAD_TIMEOUT_MS = import.meta.env.DEV ? 7000 : 30000;
+const LOCAL_DATA_RESET_VERSION = '20260812-industrial-empty';
+
+const clearLegacyLocalDataOnce = () => {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem('hr-nexus-local-data-reset') === LOCAL_DATA_RESET_VERSION) return;
+
+  const keysToRemove = [
+    'offline_entities',
+    'offline_employees',
+    'offline_performances',
+    'offline_review_cycles',
+    'offline_candidates',
+    'active_corporate_entity_id',
+    'company_tax_rate',
+    'company_departments',
+    'company_roles',
+    'preview_employee_portal_access_settings',
+    'preview_employee_account_actions',
+  ];
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+    const key = localStorage.key(index);
+    if (!key) continue;
+    if (
+      key.startsWith('active_tab_') ||
+      key.startsWith('user_entity_preferences_') ||
+      key.startsWith('company_departments_') ||
+      key.startsWith('company_roles_') ||
+      key.startsWith('leave_requests_') ||
+      key.startsWith('leave_configs_') ||
+      key.startsWith('employee_portal_') ||
+      key.startsWith('employee_portal_demo_') ||
+      key.startsWith('performance_appraisal_draft_v1_')
+    ) {
+      localStorage.removeItem(key);
+    }
+  }
+  localStorage.setItem('hr-nexus-local-data-reset', LOCAL_DATA_RESET_VERSION);
+};
 
 const withRemoteLoadTimeout = async <T,>(
   promise: Promise<T>,
@@ -143,6 +177,7 @@ class ErrorBoundary extends (React.Component as any) {
 }
 
 export default function App() {
+  clearLegacyLocalDataOnce();
   useState(() => {
     seedSocsoConfigurationsAndBrackets();
     return true;
@@ -150,7 +185,7 @@ export default function App() {
 
   // Navigation & View States
   const [activeEntityId, setActiveEntityId] = useState<string>(() => {
-    return localStorage.getItem('active_corporate_entity_id') || (isGoogleConfigured ? '' : 'ENT-92');
+    return localStorage.getItem('active_corporate_entity_id') || '';
   });
   const [isSwitchingEntity, setIsSwitchingEntity] = useState<boolean>(false);
   const [switchingToEntityName, setSwitchingToEntityName] = useState<string>('');
@@ -159,8 +194,8 @@ export default function App() {
     getAppTabFromPath(window.location.pathname) || 'dashboard'
   ));
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(() => (
-    new URLSearchParams(window.location.search).get('employeeId') || 'EMP-84729'
-  )); // Sarah Jenkins by default
+    new URLSearchParams(window.location.search).get('employeeId') || ''
+  ));
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [globalError, setGlobalError] = useState<{ message: string; stack?: string } | null>(null);
@@ -198,7 +233,7 @@ export default function App() {
   const [currentUserMustChangePassword, setCurrentUserMustChangePassword] = useState(false);
   const isEmployeePortalDemoPath = window.location.pathname.startsWith('/employee-portal/demo');
   const isEmployeeAccount = isEmployeePortalRole(currentUserRole);
-  const employeePortalQueryEmployeeId = new URLSearchParams(window.location.search).get('employeeId') || 'EMP-84729';
+  const employeePortalQueryEmployeeId = new URLSearchParams(window.location.search).get('employeeId') || '';
 
   const handleLoginSuccess = (user: UserAccount) => {
     localStorage.setItem('hr-nexus-auth', 'true');
@@ -467,159 +502,89 @@ export default function App() {
     }
   }, [activeEntityId, currentUserEmail]);
 
-  const handleSeedDatabase = async () => {
+  const handleClearData = async () => {
     setIsSeeding(true);
-    triggerNotification('Seeding Database', 'Syncing preset data with your Google Sheets...', 'info');
     try {
-      // 1. Seed corporate entities
-      for (const ent of SEED_ENTITIES) {
-        await googleSheetsClient.insert('corporate_entities', {
-          id: ent.id,
-          name: ent.name,
-          registrationNumber: ent.registrationNumber,
-          address: ent.address,
-          taxReferenceNo: ent.taxReferenceNo,
-          epfReferenceNo: ent.epfReferenceNo,
-          socsoReferenceNo: ent.socsoReferenceNo,
-          currency: ent.currency,
-          isActive: ent.isActive,
-          theme: ent.theme,
-          logoUrl: ent.logoUrl || ''
-        });
+      if (isSupabaseConfigured) {
+        const tables = [
+          'corporate_entities',
+          'employees',
+          'candidates',
+          'performances',
+          'payroll_records_2026',
+          'audit_logs'
+        ];
+        for (const table of tables) {
+          const { error } = await supabase?.from(table).delete().neq('id', '__keep_empty__') || {};
+          if (error) {
+            throw new Error(`Supabase ${table} clear failed: ${error.message}`);
+          }
+        }
       }
 
-      // 2. Seed employees
-      for (const emp of SEED_EMPLOYEES) {
-        await googleSheetsClient.insert('employees', {
-          id: emp.id,
-          entityId: emp.entityId,
-          entityName: emp.entityId,
-          name: emp.name,
-          email: emp.email,
-          designation: emp.designation,
-          department: emp.department,
-          status: emp.status,
-          bankName: emp.bankName,
-          accountNo: emp.accountNo,
-          basicSalary: emp.basicSalary,
-          housingAllowance: emp.housingAllowance,
-          transportAllowance: emp.transportAllowance,
-          overtime: emp.overtime,
-          performanceBonus: emp.performanceBonus,
-          epfRateEmployee: emp.epfRateEmployee,
-          epfRateEmployer: emp.epfRateEmployer,
-          socsoEmployee: emp.socsoEmployee,
-          socsoEmployer: emp.socsoEmployer,
-          eisEmployee: emp.eisEmployee,
-          eisEmployer: emp.eisEmployer,
-          taxPcb: emp.taxPcb,
-          unpaidLeave: emp.unpaidLeave,
-          hrdCorp: emp.hrdCorp,
-          avatarUrl: emp.avatarUrl || '',
-          nricPassport: emp.nricPassport,
-          nationality: emp.nationality,
-          contactNumber: emp.contactNumber,
-          taxNumber: emp.taxNumber,
-          epfNumber: emp.epfNumber || '',
-          employmentType: emp.employmentType,
-          maritalStatus: emp.maritalStatus,
-          eligibleForStatutory: emp.eligibleForStatutory || 'Yes',
-          contractStatutoryTreatment: emp.contractStatutoryTreatment || '',
-          payrollDocumentDisplaySettings: JSON.stringify(emp.payrollDocumentDisplaySettings || {}),
-          emergencyContactName: emp.emergencyContactName,
-          emergencyContactRelation: emp.emergencyContactRelation,
-          emergencyContactPhone: emp.emergencyContactPhone,
-          dateOfJoined: emp.dateOfJoined,
-          allowanceGeneral: emp.allowanceGeneral || 0,
-          allowanceTransport: emp.allowanceTransport !== undefined ? emp.allowanceTransport : emp.transportAllowance || 0,
-          allowanceParking: emp.allowanceParking || 0,
-          allowanceMeal: emp.allowanceMeal || 0,
-          allowanceAccommodation: emp.allowanceAccommodation !== undefined ? emp.allowanceAccommodation : emp.housingAllowance || 0,
-          allowancePhone: emp.allowancePhone || 0,
-          reimbursementAmount: emp.reimbursementAmount || 0,
-          reimbursementDesc: emp.reimbursementDesc || '',
-          bonusAmount: emp.bonusAmount !== undefined ? emp.bonusAmount : emp.performanceBonus || 0,
-          bonusDesc: emp.bonusDesc || '',
-          commissionAmount: emp.commissionAmount || 0,
-          commissionDesc: emp.commissionDesc || '',
-          backPayAmount: emp.backPayAmount || 0,
-          backPayDesc: emp.backPayDesc || '',
-          awsAmount: emp.awsAmount || 0,
-          awsDesc: emp.awsDesc || '',
-          compensationAmount: emp.compensationAmount || 0,
-          compensationDesc: emp.compensationDesc || '',
-          deductionInLieu: emp.deductionInLieu || 0,
-          deductionCp38: emp.deductionCp38 || 0,
-          deductionOthers: emp.deductionOthers || 0,
-          deductionOthersDesc: emp.deductionOthersDesc || '',
-          spouseName: emp.spouseName || '',
-          spouseNric: emp.spouseNric || '',
-          spouseIsWorking: emp.spouseIsWorking || 'No',
-          spouseCompany: emp.spouseCompany || '',
-          spousePosition: emp.spousePosition || '',
-          hasDependants: emp.hasDependants || 'No',
-          icFrontUrl: emp.icFrontUrl || '',
-          icBackUrl: emp.icBackUrl || '',
-          educationCertUrl: emp.educationCertUrl || '',
-          skbbkEmployee: emp.skbbkEmployee || 0,
-          skbbkEmployer: emp.skbbkEmployer || 0,
-          careerHistory: JSON.stringify(emp.careerHistory || []),
-          dependants: JSON.stringify(emp.dependants || [])
-        });
+      if (isGoogleConfigured) {
+        const scriptUrls = Array.from(new Set([
+          import.meta.env.VITE_GOOGLE_SCRIPT_URL,
+          ...entities.map(entity => entity.googleScriptUrl).filter(Boolean)
+        ])) as string[];
+        for (const scriptUrl of scriptUrls) {
+          await googleSheetsClient.clearData([
+            'corporate_entities',
+            'employees',
+            'candidates',
+            'performances',
+            'payroll_records_2026',
+            'audit_logs'
+          ], scriptUrl);
+        }
       }
 
-      // 3. Seed users
-      for (const usr of MOCK_USERS) {
-        await googleSheetsClient.insert('users', {
-          email: usr.email,
-          password: usr.password,
-          name: usr.name,
-          role: usr.role
-        });
+      setEntities([]);
+      setEmployees([]);
+      setCandidates([]);
+      setPerformances([]);
+      setReviewCycles([]);
+      setPayrollRecords2026([]);
+
+      localStorage.removeItem('offline_entities');
+      localStorage.removeItem('offline_employees');
+      localStorage.removeItem('offline_performances');
+      localStorage.removeItem('offline_review_cycles');
+      localStorage.removeItem('offline_candidates');
+      localStorage.removeItem('active_corporate_entity_id');
+      localStorage.removeItem('company_tax_rate');
+      localStorage.removeItem('company_departments');
+      localStorage.removeItem('company_roles');
+      localStorage.removeItem('preview_employee_portal_access_settings');
+      localStorage.removeItem('preview_employee_account_actions');
+
+      for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+        const key = localStorage.key(index);
+        if (!key) continue;
+        if (
+          key.startsWith('active_tab_') ||
+          key.startsWith('user_entity_preferences_') ||
+          key.startsWith('company_departments_') ||
+          key.startsWith('company_roles_') ||
+          key.startsWith('leave_requests_') ||
+          key.startsWith('leave_configs_') ||
+          key.startsWith('employee_portal_') ||
+          key.startsWith('employee_portal_demo_') ||
+          key.startsWith('performance_appraisal_draft_v1_')
+        ) {
+          localStorage.removeItem(key);
+        }
       }
 
-      // 4. Seed candidates
-      for (const cand of SEED_CANDIDATES) {
-        await googleSheetsClient.insert('candidates', {
-          id: cand.id,
-          name: cand.name,
-          email: cand.email,
-          phone: cand.phone,
-          designation: cand.designation,
-          department: cand.department,
-          entityId: cand.entityId,
-          entityName: cand.entityId,
-          stage: cand.stage,
-          progress: cand.progress,
-          dateJoined: cand.dateJoined
-        });
-      }
-
-      // 5. Seed performances
-      for (const perf of SEED_PERFORMANCES) {
-        await googleSheetsClient.insert('performances', {
-          employeeId: perf.employeeId,
-          employeeEmail: SEED_EMPLOYEES.find(emp => emp.id === perf.employeeId)?.email || '',
-          reviewCycleId: perf.reviewCycleId,
-          managerName: perf.managerName,
-          reviewStatus: perf.reviewStatus,
-          rating: perf.rating,
-          teamworkScore: perf.teamworkScore,
-          communicationScore: perf.communicationScore,
-          problemSolvingScore: perf.problemSolvingScore,
-          selfEvaluation: perf.selfEvaluation,
-          managerComments: perf.managerComments,
-          goals: JSON.stringify(perf.goals || [])
-        });
-      }
-
-      triggerNotification('Seeding Complete', 'Database seeded successfully. Refreshing page...', 'info');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setActiveEntityId('');
+      setSelectedEmployeeId('');
+      triggerNotification(
+        'Data Cleared',
+        'Personnel, payroll, candidate, performance, audit, and local workspace data has been removed. Authentication and statutory reference data were preserved.'
+      );
     } catch (err: any) {
-      console.error('[Google Sheets Seeding] Failed:', err);
-      triggerNotification('Seed Failed', `Could not seed database: ${err.message || err}`, 'info');
+      console.error('[Data Clear] Failed:', err);
+      triggerNotification('Clear Failed', `Could not clear data: ${err.message || err}`, 'info');
     } finally {
       setIsSeeding(false);
     }
@@ -777,12 +742,6 @@ export default function App() {
           return;
         }
 
-        // Auto-seed if corporate entities is empty
-        if (!mainPayload.corporate_entities || mainPayload.corporate_entities.length === 0) {
-          await handleSeedDatabase();
-          return;
-        }
-        
         // 1. Fetch corporate entities
         let loadedEntities: CorporateEntity[] = [];
         if (mainPayload.corporate_entities) {
@@ -800,9 +759,8 @@ export default function App() {
             logoUrl: e.logoUrl || '',
             googleScriptUrl: e.googleScriptUrl || ''
           }));
-          const onlyRedPoint = loadedEntities.filter(ent => ent.id === 'ENT-92' || ent.name === 'Red Point Sdn Bhd');
-          setEntities(onlyRedPoint);
-          setActiveEntityId('ENT-92');
+          setEntities(loadedEntities);
+          setActiveEntityId(loadedEntities[0]?.id || '');
         }
 
         // 1.5. Group and load other payloads from individual scripts
@@ -990,10 +948,8 @@ export default function App() {
             console.error('Error parsing salaryAdjustments for employee', e.id, err);
           }
           let resolvedEntityId = e.entityName || e.entityId || '';
-          if (resolvedEntityId === 'Red Point Sdn Bhd' || resolvedEntityId === 'ENT-92' || resolvedEntityId === 'ENT-01' || !resolvedEntityId) {
-            resolvedEntityId = 'ENT-92';
-          } else if (resolvedEntityId === 'YSYD Sdn Bhd' || resolvedEntityId === 'ENT-86' || resolvedEntityId === 'ENT-02') {
-            resolvedEntityId = 'ENT-86';
+          if (!resolvedEntityId) {
+            resolvedEntityId = loadedEntities[0]?.id || '';
           }
 
           return {
@@ -1090,7 +1046,7 @@ export default function App() {
             employee_tp3_declarations: employeeTp3Declarations
           };
         });
-        setEmployees(parsedEmployees.filter(emp => emp.entityId === 'ENT-92'));
+        setEmployees(parsedEmployees);
 
         // Parse performances
         setPerformances(uniquePerformances.map((p: any) => ({
@@ -1118,10 +1074,8 @@ export default function App() {
 
         const parsedCandidates = uniqueCandidates.map((c: any) => {
           let resolvedEntityId = c.entityName || c.entityId || '';
-          if (resolvedEntityId === 'Red Point Sdn Bhd' || resolvedEntityId === 'ENT-92' || resolvedEntityId === 'ENT-01' || !resolvedEntityId) {
-            resolvedEntityId = 'ENT-92';
-          } else if (resolvedEntityId === 'YSYD Sdn Bhd' || resolvedEntityId === 'ENT-86' || resolvedEntityId === 'ENT-02') {
-            resolvedEntityId = 'ENT-86';
+          if (!resolvedEntityId) {
+            resolvedEntityId = loadedEntities[0]?.id || '';
           }
           return {
             id: c.id || '',
@@ -1136,7 +1090,7 @@ export default function App() {
             dateJoined: c.dateJoined || ''
           };
         });
-        setCandidates(parsedCandidates.filter(cand => cand.entityId === 'ENT-92'));
+        setCandidates(parsedCandidates);
 
         // Parse payroll records
         setPayrollRecords2026(uniquePayrollRecords.map((r: any) => ({
@@ -1267,49 +1221,7 @@ export default function App() {
   }, []);
 
   // Dynamic Theme style provider
-  const getThemeStyles = (themeName?: 'theme1' | 'theme2' | 'theme3') => {
-    if (themeName === 'theme2') {
-      return {
-        '--color-primary': '#B30000',
-        '--color-primary-container': '#8B0000',
-        '--color-on-primary-container': '#FFFFFF',
-        '--color-secondary': '#8B0000',
-        '--color-secondary-container': '#F2D7C5',
-        '--color-on-secondary-container': '#B30000',
-        '--color-background': '#F7EBDD',
-        '--color-on-background': '#222222',
-        '--color-surface': '#FFF8F0',
-        '--color-surface-container-lowest': '#FFF8F0',
-        '--color-surface-container-low': '#FFF8F0',
-        '--color-surface-container': '#F2D7C5',
-        '--color-on-surface': '#B30000',
-        '--color-on-surface-variant': '#222222',
-        '--color-neutral-border': '#F2D7C5',
-        '--color-parchment': '#FFF8F0',
-      } as React.CSSProperties;
-    }
-    if (themeName === 'theme3') {
-      return {
-        '--color-primary': '#D4AF37',
-        '--color-primary-container': '#1E1E1E',
-        '--color-on-primary-container': '#D4AF37',
-        '--color-secondary': '#FFD700',
-        '--color-secondary-container': '#2A2A2A',
-        '--color-on-secondary-container': '#D4AF37',
-        '--color-background': '#121212',
-        '--color-on-background': '#FFFFFF',
-        '--color-surface': '#1E1E1E',
-        '--color-surface-container-lowest': '#121212',
-        '--color-surface-container-low': '#1A1A1A',
-        '--color-surface-container': '#2A2A2A',
-        '--color-on-surface': '#D4AF37',
-        '--color-on-surface-variant': '#E5E5E5',
-        '--color-neutral-border': '#3A3A3A',
-        '--color-parchment': '#2A2A2A',
-      } as React.CSSProperties;
-    }
-    return {} as React.CSSProperties;
-  };
+  const getThemeStyles = (_themeName?: 'theme1' | 'theme2' | 'theme3') => ({}) as React.CSSProperties;
 
   // Global Interactive Settings (State-driven for extra precision)
   const [companyName, setCompanyName] = useState('Acme Global Enterprise');
@@ -1420,15 +1332,8 @@ export default function App() {
 
   const getScriptUrlForEntity = (entityNameOrId?: string): string | undefined => {
     if (!entityNameOrId) return undefined;
-    
-    let name = entityNameOrId;
-    if (name === 'ENT-01' || name === 'ENT-92') {
-      name = 'Red Point Sdn Bhd';
-    } else if (name === 'ENT-02' || name === 'ENT-86') {
-      name = 'YSYD Sdn Bhd';
-    }
 
-    const ent = entities.find(e => e.name === name || e.id === name);
+    const ent = entities.find(e => e.name === entityNameOrId || e.id === entityNameOrId);
     return ent?.googleScriptUrl && ent.googleScriptUrl.trim() !== '' 
       ? ent.googleScriptUrl.trim() 
       : undefined;
@@ -1438,7 +1343,7 @@ export default function App() {
     const newCandidate: Candidate = {
       ...candidateInput,
       email: candidateInput.email.trim().toLowerCase(),
-      entityId: candidateInput.entityId || activeEntityId || 'ENT-92'
+      entityId: candidateInput.entityId || activeEntityId || ''
     };
 
     if (candidates.some(candidate => candidate.email.toLowerCase() === newCandidate.email)) {
@@ -1462,7 +1367,7 @@ export default function App() {
           phone: newCandidate.phone,
           designation: newCandidate.designation,
           department: newCandidate.department,
-          entityName: newCandidate.entityId === 'ENT-92' ? 'Red Point Sdn Bhd' : (newCandidate.entityId === 'ENT-86' ? 'YSYD Sdn Bhd' : newCandidate.entityId),
+          entityName: entities.find(entity => entity.id === newCandidate.entityId)?.name || newCandidate.entityId,
           stage: newCandidate.stage,
           progress: newCandidate.progress,
           dateJoined: newCandidate.dateJoined
@@ -1511,7 +1416,7 @@ export default function App() {
       email: normalizedEmail,
       bankName: employeeInput.bankName.trim(),
       nricPassport: formatNricOrPassport(employeeInput.nricPassport),
-      entityId: employeeInput.entityId || activeEntityId || 'ENT-92'
+      entityId: employeeInput.entityId || activeEntityId || ''
     };
 
     if (employees.some(employee => employee.email.toLowerCase() === newEmployee.email)) {
@@ -1544,7 +1449,7 @@ export default function App() {
       try {
         const scriptUrl = getScriptUrlForEntity(newEmployee.entityId);
         await googleSheetsClient.insert('employees', {
-          entityName: newEmployee.entityId === 'ENT-92' ? 'Red Point Sdn Bhd' : (newEmployee.entityId === 'ENT-86' ? 'YSYD Sdn Bhd' : newEmployee.entityId),
+          entityName: entities.find(entity => entity.id === newEmployee.entityId)?.name || newEmployee.entityId,
           name: newEmployee.name,
           email: newEmployee.email,
           designation: newEmployee.designation,
@@ -2040,14 +1945,14 @@ export default function App() {
   // account session in localStorage.
   const isEmployeePortalPreview = isEmployeePortalDemoPath;
   const employeePortalSessionEmail = String(currentUserEmail || '').toLowerCase();
-  const employeePortalDemoEmployee = getCurrentActiveEmployees(SEED_EMPLOYEES).find(employee =>
+  const employeePortalDemoEmployee = getCurrentActiveEmployees(employees).find(employee =>
     employee.id === employeePortalQueryEmployeeId ||
     employee.email.toLowerCase() === employeePortalQueryEmployeeId.toLowerCase()
-  ) || getCurrentActiveEmployees(SEED_EMPLOYEES)[0] || null;
+  ) || getCurrentActiveEmployees(employees)[0] || null;
   const employeePortalLiveEmployee = isEmployeeAccount
     ? (
       currentActiveEmployees.find(employee => employee.email.toLowerCase() === employeePortalSessionEmail) ||
-      getCurrentActiveEmployees(SEED_EMPLOYEES).find(employee => employee.email.toLowerCase() === employeePortalSessionEmail) ||
+      getCurrentActiveEmployees(employees).find(employee => employee.email.toLowerCase() === employeePortalSessionEmail) ||
       null
     )
     : null;
@@ -2056,13 +1961,11 @@ export default function App() {
     : employeePortalLiveEmployee;
   const employeePortalEmployeeEmail = String(employeePortalEmployee?.email || '').toLowerCase();
   const employeePortalEmployees = employeePortalEmployee ? [employeePortalEmployee] : [];
-  const employeePortalEntitiesSource = isEmployeePortalPreview
-    ? SEED_ENTITIES
-    : (entities.length > 0 ? entities : SEED_ENTITIES);
+  const employeePortalEntitiesSource = entities;
   const employeePortalEntity = employeePortalEmployee
     ? (
       employeePortalEntitiesSource.find(entity => entity.id === employeePortalEmployee.entityId) ||
-      SEED_ENTITIES.find(entity => entity.id === employeePortalEmployee.entityId)
+      entities.find(entity => entity.id === employeePortalEmployee.entityId)
     )
     : null;
   const employeePortalEntities = employeePortalEntity ? [employeePortalEntity] : employeePortalEntitiesSource;
@@ -2074,11 +1977,9 @@ export default function App() {
       .filter(Boolean)
       .map(value => String(value).toLowerCase())
   );
-  const employeePortalPerformances = (isEmployeePortalPreview ? SEED_PERFORMANCES : performances)
+  const employeePortalPerformances = performances
     .filter(performance => employeePortalEmployeeKeys.has(performance.employeeId.toLowerCase()));
-  const employeePortalReviewCycles = isEmployeePortalPreview
-    ? SEED_REVIEW_CYCLES
-    : (reviewCycles.length > 0 ? reviewCycles : SEED_REVIEW_CYCLES);
+  const employeePortalReviewCycles = reviewCycles;
   const shouldRenderEmployeePortal = isEmployeePortalPreview || (isAuthenticated && isEmployeeAccount);
   const handleEmployeePortalUpdateEmployee = async (id: string, updates: Partial<Employee>) => {
     const normalizedId = id.toLowerCase();
@@ -2091,7 +1992,7 @@ export default function App() {
       return;
     }
 
-    const fallbackEmployee = getCurrentActiveEmployees(SEED_EMPLOYEES).find(employee =>
+    const fallbackEmployee = getCurrentActiveEmployees(employees).find(employee =>
       employee.id.toLowerCase() === normalizedId ||
       employee.email.toLowerCase() === normalizedId
     );
@@ -2104,10 +2005,10 @@ export default function App() {
 
   if (isLoadingDb && !shouldRenderEmployeePortal) {
     return (
-      <div className="min-h-screen bg-[#FFF8F0] flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="w-10 h-10 border-4 border-[#3A2E2B] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-mono font-bold text-[#3A2E2B] uppercase tracking-widest animate-pulse">Synchronizing HR Database...</p>
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-mono font-bold text-on-surface uppercase tracking-widest animate-pulse">Synchronizing HR Database...</p>
         </div>
       </div>
     );
@@ -2166,9 +2067,9 @@ export default function App() {
 
   if (globalError) {
     return (
-      <div className="min-h-screen bg-neutral-900 text-[#f7f0e0] p-6 font-mono text-left flex flex-col justify-start gap-4">
-        <div className="bg-red-950 border border-red-500 rounded p-5 space-y-3">
-          <h1 className="text-lg font-bold text-red-400 flex items-center gap-2">
+      <div className="min-h-screen bg-inverse-surface text-inverse-on-surface p-6 font-mono text-left flex flex-col justify-start gap-4">
+        <div className="bg-error/15 border border-error rounded p-5 space-y-3">
+          <h1 className="text-lg font-bold text-error flex items-center gap-2">
             <AlertCircle className="w-5 h-5" /> Application Crash Detected
           </h1>
           <p className="text-sm font-semibold">{globalError.message}</p>
@@ -2184,7 +2085,7 @@ export default function App() {
               localStorage.clear();
               window.location.reload();
             }}
-            className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded text-sm font-semibold cursor-pointer"
+            className="px-4 py-2 bg-tertiary hover:bg-tertiary/90 text-white rounded text-sm font-semibold cursor-pointer"
           >
             Clear Caches & Reset App
           </button>
@@ -2193,7 +2094,7 @@ export default function App() {
               setGlobalError(null);
               window.location.reload();
             }}
-            className="px-4 py-2 bg-white hover:bg-neutral-100 text-neutral-900 rounded text-sm font-semibold cursor-pointer"
+            className="px-4 py-2 bg-white hover:bg-surface-container text-on-background rounded text-sm font-semibold cursor-pointer"
           >
             Reload Page
           </button>
@@ -2210,20 +2111,20 @@ export default function App() {
 
   if (needsPasswordSetup) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4 font-sans relative overflow-hidden">
+      <div className="min-h-screen bg-inverse-surface flex items-center justify-center p-4 font-sans relative overflow-hidden">
         <div className="absolute top-0 left-0 w-64 h-full pointer-events-none opacity-20">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-[#A32626] fill-current">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-primary fill-current">
             <path d="M0,0 C50,30 20,70 0,100 Z" />
           </svg>
         </div>
         <div className="absolute bottom-0 right-0 w-96 h-64 pointer-events-none opacity-20">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-[#A32626] fill-current">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full text-primary fill-current">
             <path d="M100,100 C60,80 80,30 100,0 Z" />
           </svg>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm text-center relative z-10 border border-[#E5E5E5]">
-          <h2 className="text-xl font-bold text-[#333333] mb-2">Welcome, {currentUserName}!</h2>
-          <p className="text-sm text-gray-500 mb-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm text-center relative z-10 border border-neutral-border">
+          <h2 className="text-xl font-bold text-on-background mb-2">Welcome, {currentUserName}!</h2>
+          <p className="text-sm text-on-surface-variant mb-6">
             Set a new password before entering the employee portal.
           </p>
           <form onSubmit={async (e) => {
@@ -2286,7 +2187,7 @@ export default function App() {
               required
               minLength={8}
               placeholder="New password"
-              className="w-full h-12 px-4 bg-white border border-[#E5E5E5] rounded-xl text-sm text-[#333333] mb-3 focus:outline-none focus:border-[#A32626] focus:ring-1 focus:ring-[#A32626]/30 transition-all text-center"
+            className="w-full h-12 px-4 bg-white border border-neutral-border rounded-xl text-sm text-on-background mb-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all text-center"
             />
             <input
               name="confirmPassword"
@@ -2294,9 +2195,9 @@ export default function App() {
               required
               minLength={8}
               placeholder="Confirm new password"
-              className="w-full h-12 px-4 bg-white border border-[#E5E5E5] rounded-xl text-sm text-[#333333] mb-4 focus:outline-none focus:border-[#A32626] focus:ring-1 focus:ring-[#A32626]/30 transition-all text-center"
+            className="w-full h-12 px-4 bg-white border border-neutral-border rounded-xl text-sm text-on-background mb-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all text-center"
             />
-            <button type="submit" className="w-full h-12 bg-[#A32626] hover:bg-[#8F1F1F] text-white font-semibold rounded-xl shadow-md shadow-[#A32626]/20 transition-all focus:outline-none focus:ring-2 focus:ring-[#A32626]/50">
+            <button type="submit" className="w-full h-12 bg-primary hover:bg-primary-container text-white font-semibold rounded-xl shadow-md shadow-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50">
               Save New Password
             </button>
           </form>
@@ -2340,12 +2241,12 @@ export default function App() {
       
       {/* Premium Glassmorphic Loading Overlay */}
       {isSwitchingEntity && (
-        <div className="fixed inset-0 bg-[#121212] z-[9999] flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in font-sans">
+        <div className="fixed inset-0 bg-inverse-surface z-[9999] flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in font-sans">
           <div className="relative flex flex-col items-center max-w-md w-full animate-fade-in">
             {/* Double Rotating Glowing Rings */}
             <div className="relative w-28 h-28 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-t-transparent border-b-transparent border-[#f7f0e0]/20 animate-spin-slow"></div>
-              <div className="absolute inset-2 rounded-full border-4 border-r-transparent border-l-transparent border-[#f7f0e0] animate-spin-reverse-slow"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-t-transparent border-b-transparent border-primary/20 animate-spin-slow"></div>
+              <div className="absolute inset-2 rounded-full border-4 border-r-transparent border-l-transparent border-primary animate-spin-reverse-slow"></div>
               
               {/* Central Glowing Core Symbol */}
               <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 animate-pulse-glow shadow-lg">
@@ -2357,7 +2258,7 @@ export default function App() {
             <h2 className="text-xl font-bold mt-8 tracking-wider text-white uppercase font-display">
               Corporate Context Switch
             </h2>
-            <div className="w-12 h-0.5 bg-[#f7f0e0] mt-3 mb-4 rounded-full opacity-60"></div>
+            <div className="w-12 h-0.5 bg-primary mt-3 mb-4 rounded-full opacity-60"></div>
             
             <p className="text-sm text-neutral-300 tracking-wide">
               Transitioning secure ledger references and statutory profiles to:
@@ -2368,7 +2269,7 @@ export default function App() {
 
             <div className="mt-8 flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
               <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping"></div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-bold animate-pulse">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant font-bold animate-pulse">
                 Synchronizing Google sheets...
               </span>
             </div>
@@ -2458,7 +2359,7 @@ export default function App() {
                   : 'HR'}
               </div>
               <div className="text-left hidden sm:block leading-none">
-                <span className="font-bold text-xs text-on-surface block">{currentUserName || 'Jenny Law'}</span>
+                <span className="font-bold text-xs text-on-surface block">{currentUserName || 'System User'}</span>
                 <span className="text-[10px] text-on-surface-variant mt-0.5 block">{currentUserRole || 'Global Administrator'}</span>
               </div>
               <button 
@@ -2729,15 +2630,15 @@ export default function App() {
                     <div className="pt-6 border-t border-neutral-border space-y-4">
                       <div>
                         <h3 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Google Sheets Database Administration</h3>
-                        <p className="text-[11px] text-on-surface-variant leading-relaxed">Initialize or seed your Google Spreadsheet with default corporate entities, mock employee records, appraisal data, and login credentials.</p>
+                        <p className="text-[11px] text-on-surface-variant leading-relaxed">Clear personnel and payroll records from connected sheets so the workspace stays empty until real data is entered.</p>
                       </div>
                       <div>
                         <button
-                          onClick={handleSeedDatabase}
+                          onClick={handleClearData}
                           disabled={isSeeding}
                           className="bg-primary text-white text-xs font-semibold py-2 px-4 rounded hover:bg-primary-container disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                          {isSeeding ? 'Seeding Database...' : 'Seed Database with Default Presets'}
+                          {isSeeding ? 'Clearing Data...' : 'Clear Demo Data'}
                         </button>
                       </div>
                     </div>

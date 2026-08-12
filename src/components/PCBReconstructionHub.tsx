@@ -93,8 +93,8 @@ export default function PCBReconstructionHub({
   const [adjReason, setAdjReason] = useState('Administrative tax profile alignment');
   const [adjDoc, setAdjDoc] = useState('supporting_ledger_correction.pdf');
   const [adjRemitted, setAdjRemitted] = useState<'Yes' | 'No'>('No');
-  const [adjRequestedBy, setAdjRequestedBy] = useState('Jenny Law');
-  const [adjApprovedBy, setAdjApprovedBy] = useState('Jenny Law');
+  const [adjRequestedBy, setAdjRequestedBy] = useState('');
+  const [adjApprovedBy, setAdjApprovedBy] = useState('');
 
   const activeEmployee = employees.find(e => e.id === selectedEmpId) || employees[0];
 
@@ -333,7 +333,7 @@ export default function PCBReconstructionHub({
         assessmentYear: 2026,
         changedEffectiveMonth: Number(adjMonth),
         reason: adjReason,
-        changedBy: 'Jenny Law'
+        changedBy: adjRequestedBy || 'System User'
       });
       onShowNotification(
         'Manual Adjustment Approved',
@@ -389,7 +389,7 @@ export default function PCBReconstructionHub({
         assessmentYear: 2026,
         changedEffectiveMonth: item.payroll_month,
         reason: `Reversal of entry ${item.id}`,
-        changedBy: 'Jenny Law'
+        changedBy: adjApprovedBy || 'System User'
       });
       onShowNotification('Entry Reversed', `Successfully reversed tax entry for month ${item.payroll_month}.`, 'success');
     } catch (error) {

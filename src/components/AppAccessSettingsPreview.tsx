@@ -13,11 +13,9 @@ import {
   UserRound,
   Wallet,
 } from 'lucide-react';
-import { MOCK_USERS, UserAccount } from '../data';
 import { Employee } from '../types';
 import {
   canManageAppAccess,
-  isEmployeeSignerRole,
   isEmployeePortalRole,
 } from '../lib/userRoles';
 
@@ -83,16 +81,6 @@ const readAccessMap = (): PortalAccessMap => {
 
 const buildPreviewAccounts = (employees: Employee[]): PreviewAccount[] => {
   const accounts = new Map<string, PreviewAccount>();
-
-  MOCK_USERS.forEach((user: UserAccount) => {
-    const email = user.email.trim().toLowerCase();
-    accounts.set(email, {
-      email,
-      name: user.name,
-      role: user.role,
-      accountType: isEmployeeSignerRole(user.role) ? 'Employee' : 'Admin User',
-    });
-  });
 
   employees.forEach((employee) => {
     const email = employee.email.trim().toLowerCase();
@@ -337,7 +325,7 @@ export default function AppAccessSettingsPreview({
                                 checked={enabled}
                                 onChange={() => handleToggle(item.id)}
                                 disabled={!canEditAccess}
-                                className="h-4 w-4 accent-[#A32626]"
+                                className="h-4 w-4 accent-primary"
                               />
                             </span>
                             <span className="mt-1 block text-[10px] leading-4 text-on-surface-variant">

@@ -1,6 +1,5 @@
 import { strict as assert } from 'node:assert';
 import {
-  INITIAL_EMPLOYEES,
   calculatePayslip,
   calculateYtd,
   getPayrollDocumentProfileForRecord,
@@ -10,6 +9,7 @@ import {
   seedSocsoConfigurationsAndBrackets
 } from './data';
 import type { Employee, PayrollRecord2026 } from './types';
+import { createTestEmployee } from './testFixtures';
 
 const storage = new Map<string, string>();
 (globalThis as any).localStorage = {
@@ -21,7 +21,7 @@ const storage = new Map<string, string>();
 seedSocsoConfigurationsAndBrackets();
 
 const createEmployee = (overrides: Partial<Employee> = {}): Employee => ({
-  ...INITIAL_EMPLOYEES[0],
+  ...createTestEmployee(),
   id: overrides.email || overrides.id || 'separate-payout@example.com',
   email: overrides.email || 'separate-payout@example.com',
   basicSalary: 5000,

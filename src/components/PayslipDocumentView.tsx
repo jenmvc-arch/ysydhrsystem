@@ -279,20 +279,7 @@ export default function PayslipDocumentView({
     }
   };
 
-  const isTheme2 = employeeEntity?.theme === 'theme2';
-  const themeStyles = isTheme2 ? {
-    '--color-primary': '#A32626',
-    '--color-primary-container': '#A32626',
-    '--color-secondary': '#F2E8D8',
-    '--color-on-secondary-container': '#333333',
-    '--color-on-surface': '#333333',
-    '--color-on-surface-variant': '#333333',
-    '--color-error': '#A32626',
-    '--color-neutral-border': '#E6D8C1',
-    '--color-surface-container-low': '#F2E8D8',
-    '--color-surface-container': '#F2E8D8',
-    color: '#333333'
-  } as React.CSSProperties : {};
+  const themeStyles = {} as React.CSSProperties;
 
   return (
     <div 
@@ -389,7 +376,7 @@ export default function PayslipDocumentView({
           </div>
 
           {/* Option A Branding Header */}
-          <div className="flex justify-between items-stretch border-b-4 border-[#A32626] pb-4 mb-6 select-none bg-white relative">
+          <div className="flex justify-between items-stretch border-b-4 border-primary pb-4 mb-6 select-none bg-white relative">
             <div className="flex items-start gap-4 py-2">
               {/* Logo container */}
               <div className="w-44 h-16 rounded bg-white flex items-center justify-center overflow-hidden shrink-0 relative">
@@ -402,8 +389,8 @@ export default function PayslipDocumentView({
 
               {/* Company Details */}
               <div className="text-left text-[#333333]">
-                <h1 className="text-2xl font-black text-[#A32626] tracking-tight font-sans mb-1 leading-tight">
-                  {employeeEntity?.name || 'Red Point Sdn Bhd'}
+                <h1 className="text-2xl font-black text-primary tracking-tight font-sans mb-1 leading-tight">
+                  {employeeEntity?.name || 'Company not configured'}
                 </h1>
                 {employeeEntity?.registrationNumber && (
                   <p className="text-[10px] text-[#333333] font-mono font-bold mt-0.5">
@@ -412,7 +399,7 @@ export default function PayslipDocumentView({
                 )}
                 {displaySettings.showCompanyAddress && (
                   <div className="flex items-start gap-1 mt-1 text-[11px] text-[#333333] leading-normal max-w-[400px]">
-                    <span className="text-[#A32626] mt-0.5 shrink-0 font-bold">📍</span>
+                    <span className="text-primary mt-0.5 shrink-0 font-bold">📍</span>
                     <p className="font-medium">{employeeEntity?.address || 'No registered corporate address'}</p>
                   </div>
                 )}
@@ -420,27 +407,27 @@ export default function PayslipDocumentView({
             </div>
 
             {/* Right side banner block */}
-            <div className="bg-[#A32626] text-white px-6 py-4 flex flex-col justify-center items-center rounded-l-lg min-w-[140px] text-center self-stretch">
-              <span className="text-xs uppercase tracking-widest font-black opacity-80 text-[#F2E8D8]">{documentProfile.documentType.toUpperCase()}</span>
+            <div className="bg-primary text-white px-6 py-4 flex flex-col justify-center items-center rounded-l-lg min-w-[140px] text-center self-stretch">
+              <span className="text-xs uppercase tracking-widest font-black opacity-80 text-surface">{documentProfile.documentType.toUpperCase()}</span>
               <span className="text-sm font-bold mt-1 font-mono">
                 {new Date(payYear, payMonth - 1).toLocaleDateString('en-US', {month: 'short', year: 'numeric'})}
               </span>
               {activePayrollRecord?.payoutTitle && (
-                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[#F2E8D8]">{activePayrollRecord.payoutTitle}</span>
+                <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-surface">{activePayrollRecord.payoutTitle}</span>
               )}
             </div>
           </div>
           {activePayrollRecord?.payoutDescription && (
             <div className="mb-6 rounded border border-[#E5DED5] bg-white px-4 py-3 text-xs text-[#5a352b]">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-[#A32626]">Payout Description</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-primary">Payout Description</span>
               <p className="mt-1 whitespace-pre-line leading-relaxed">{activePayrollRecord.payoutDescription}</p>
             </div>
           )}
           {/* Employee Details Card (Option A styled) */}
-          <div className="bg-[#F2E8D8] border border-[#E5DED5] rounded-lg p-5 mb-6 text-left select-none">
+          <div className="bg-surface-container-low border border-neutral-border rounded-lg p-5 mb-6 text-left select-none">
             {/* Title with Deep Red icon */}
-            <div className="flex items-center gap-2 mb-3 border-b border-[#E5DED5] pb-2 text-[#A32626]">
-              <User className="w-4 h-4 text-[#A32626]" />
+            <div className="flex items-center gap-2 mb-3 border-b border-neutral-border pb-2 text-primary">
+              <User className="w-4 h-4 text-primary" />
               <span className="text-xs font-black uppercase tracking-wider">{documentFieldLabels.detailsTitle}</span>
             </div>
 
@@ -892,7 +879,7 @@ export default function PayslipDocumentView({
           {/* Bottom Confidential Red Bar */}
           {displaySettings.showNotesFooter && (
           <div className="bg-[#A32626] text-white px-4 py-2.5 rounded-b-lg flex flex-col md:flex-row justify-between items-center text-[10px] uppercase font-bold tracking-wider select-none gap-2">
-            <span>Thank you for your continued contribution to {employeeEntity?.name || 'Red Point Sdn Bhd'}.</span>
+            <span>Thank you for your continued contribution to {employeeEntity?.name || 'Company not configured'}.</span>
             <span className="opacity-95 text-[#F2E8D8] tracking-widest font-black">Confidential</span>
           </div>
           )}

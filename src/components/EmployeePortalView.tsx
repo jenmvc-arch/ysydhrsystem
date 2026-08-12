@@ -363,26 +363,26 @@ export default function EmployeePortalView({
     : '—';
 
   const portalTheme = {
-    '--color-primary': '#a32626',
-    '--color-primary-container': '#7f1d1d',
-    '--color-on-primary-container': '#ffffff',
-    '--color-secondary': '#85615a',
-    '--color-secondary-container': '#f6ede3',
-    '--color-on-secondary-container': '#a32626',
-    '--color-background': '#f7f1ea',
-    '--color-on-background': '#261916',
-    '--color-surface': '#fffdfb',
+    '--color-primary': '#825500',
+    '--color-primary-container': '#f4a300',
+    '--color-on-primary-container': '#613e00',
+    '--color-secondary': '#5f5e5e',
+    '--color-secondary-container': '#e5e2e1',
+    '--color-on-secondary-container': '#474646',
+    '--color-background': '#f5fafe',
+    '--color-on-background': '#171c1f',
+    '--color-surface': '#ffffff',
     '--color-surface-container-lowest': '#ffffff',
-    '--color-surface-container-low': '#fff8f0',
-    '--color-surface-container': '#f5e9db',
-    '--color-surface-container-high': '#ece0d2',
-    '--color-surface-container-highest': '#dfd0bd',
-    '--color-on-surface': '#261916',
-    '--color-on-surface-variant': '#74584f',
-    '--color-outline': '#e2d4c4',
-    '--color-outline-variant': '#e2d4c4',
-    '--color-parchment': '#f5ece2',
-    '--color-neutral-border': '#e2d4c4',
+    '--color-surface-container-low': '#eff4f8',
+    '--color-surface-container': '#eaeef2',
+    '--color-surface-container-high': '#e4e9ed',
+    '--color-surface-container-highest': '#dee3e7',
+    '--color-on-surface': '#171c1f',
+    '--color-on-surface-variant': '#524533',
+    '--color-outline': '#857461',
+    '--color-outline-variant': '#d7c3ad',
+    '--color-parchment': '#f5fafe',
+    '--color-neutral-border': '#d9dee2',
   } as React.CSSProperties;
 
   const updateLeaveRequests = (next: LeaveRequest[]) => {
@@ -531,7 +531,7 @@ export default function EmployeePortalView({
   }
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-gradient-to-b from-[#7f1d1d] via-[#842323] to-[#6f1919] text-[#fff6ec] p-5">
+    <div className="flex h-full flex-col bg-inverse-surface text-inverse-on-surface p-5">
       <div className="mb-6 rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_12px_24px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 overflow-hidden rounded-2xl bg-white">
@@ -539,7 +539,7 @@ export default function EmployeePortalView({
           </div>
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.35em] text-white/60">Employee Portal</p>
-            <p className="truncate text-sm font-semibold">{employeeEntity?.name || 'Red Point Sdn Bhd'}</p>
+            <p className="truncate text-sm font-semibold">{employeeEntity?.name || 'Company not configured'}</p>
           </div>
         </div>
       </div>
@@ -1467,7 +1467,7 @@ export default function EmployeePortalView({
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(163,38,38,0.08),_transparent_38%),linear-gradient(180deg,_#fffaf4_0%,_#f6eee4_100%)] text-on-background" style={portalTheme}>
+    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(130,85,0,0.08),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_#eff4f8_100%)] text-on-background" style={portalTheme}>
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
         <aside className="hidden lg:block lg:w-[292px] lg:shrink-0">
           <div className="sticky top-0 h-screen">
