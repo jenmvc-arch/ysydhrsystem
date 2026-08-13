@@ -3324,44 +3324,6 @@ export default function EmployeeDirectoryView({
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           />
                         </div>
-                        <div className="sm:col-span-2 rounded border border-primary/20 bg-primary/5 p-3">
-                          <span className="block text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Statutory Registration Numbers</span>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">TIN Number (Tax Number)</label>
-                              <input
-                                type="text"
-                                value={editTaxNumber}
-                                onChange={(e) => setEditTaxNumber(toUppercase(e.target.value))}
-                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">KWSP Number (EPF)</label>
-                              <input
-                                type="text"
-                                value={editEpfNumber}
-                                onChange={(e) => setEditEpfNumber(toUppercase(e.target.value))}
-                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">SOCSO Number</label>
-                              <input
-                                type="text"
-                                value={editSocsoNumber}
-                                onChange={(e) => {
-                                  setEditSocsoNumber(e.target.value.replace(/-/g, ''));
-                                  setIsEditSocsoNumberAutoFilled(false);
-                                }}
-                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
-                              />
-                              <p className="mt-1 text-[10px] text-on-surface-variant">
-                                Auto-filled from NRIC without hyphens; editable.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Employment Type</label>
                           <select
@@ -3440,6 +3402,44 @@ export default function EmployeeDirectoryView({
                             onChange={(e) => setEditBasicSalary(Number(e.target.value))}
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           />
+                        </div>
+                        <div className="sm:col-span-2 rounded border border-primary/20 bg-primary/5 p-3">
+                          <span className="block text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Statutory Registration Numbers</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">TIN Number (Tax Number)</label>
+                              <input
+                                type="text"
+                                value={editTaxNumber}
+                                onChange={(e) => setEditTaxNumber(toUppercase(e.target.value))}
+                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">KWSP Number (EPF)</label>
+                              <input
+                                type="text"
+                                value={editEpfNumber}
+                                onChange={(e) => setEditEpfNumber(toUppercase(e.target.value))}
+                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">SOCSO Number</label>
+                              <input
+                                type="text"
+                                value={editSocsoNumber}
+                                onChange={(e) => {
+                                  setEditSocsoNumber(e.target.value.replace(/-/g, ''));
+                                  setIsEditSocsoNumberAutoFilled(false);
+                                }}
+                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
+                              />
+                              <p className="mt-1 text-[10px] text-on-surface-variant">
+                                Auto-filled from NRIC without hyphens; editable.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                         <div className="sm:col-span-2 rounded-lg border border-dashed border-neutral-border bg-surface-container-low p-3">
                           <div className="flex items-center justify-between gap-3">
