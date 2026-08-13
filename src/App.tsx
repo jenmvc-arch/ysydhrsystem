@@ -34,7 +34,9 @@ import {
   getPayrollDocumentProfile,
   getCurrentActiveEmployees,
   mergePayrollRecords2026,
-  isSeparatePayrollRecord
+  isSeparatePayrollRecord,
+  sortPayrollRecords,
+  calculatePayslipFromRecord
 } from './data';
 import { getGmt8Timestamp, getGmt8DateString } from './lib/dateUtils';
 import { formatNricOrPassport } from './lib/employeeInput';
@@ -436,9 +438,7 @@ export default function App() {
       )));
       return {
         ...emp,
-        historicalPayrollRecords: [...employeeOnlyRecords, ...mapped].sort((a, b) =>
-          ((a.payrollYear || 0) - (b.payrollYear || 0)) || (a.payrollMonth - b.payrollMonth)
-        )
+        historicalPayrollRecords: sortPayrollRecords([...employeeOnlyRecords, ...mapped])
       };
     });
   }, [employees, payrollRecords2026]);
@@ -1166,7 +1166,7 @@ export default function App() {
           eisEmployee: Number(r.eisEmployee || 0),
           eisEmployer: Number(r.eisEmployer || 0),
           hrdCorp: r.hrdCorp === undefined ? undefined : Number(r.hrdCorp || 0),
-          netPay: Number(r.netPay || 0),
+          netPay: Number(r.netPay ?? r.netSalary ?? 0),
           createdAt: r.createdAt || ''
         })));
       } catch (err) {
@@ -1783,11 +1783,14 @@ export default function App() {
       compensationLabel: record.compensationLabel || documentProfile?.compensationLabel,
       displaySettingsSnapshot: record.displaySettingsSnapshot || (payrollEmployee ? getPayrollDocumentDisplaySettings(payrollEmployee) : undefined)
     };
+    const recordBreakdown = payrollEmployee ? calculatePayslipFromRecord(payrollEmployee, recordToSave) : null;
 
     if (isSupabaseConfigured) {
       try {
         await supabaseClient.upsert('payroll_records_2026', {
           ...recordToSave,
+          totalAllowance: recordBreakdown?.allowancesSum ?? undefined,
+          grossSalary: recordBreakdown?.grossEarnings ?? undefined,
           taxPcb: recordToSave.actualPCBDeducted,
           netSalary: recordToSave.netPay
         });

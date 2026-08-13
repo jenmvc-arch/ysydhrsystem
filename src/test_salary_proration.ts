@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import {
   calculatePayslip,
+  calculatePayslipFromRecord,
   getEmployeeForMonth,
   getPayrollBasicSalary,
   getSalaryProration,
   getHrdCorpLevyRate,
   seedSocsoConfigurationsAndBrackets
 } from './data';
-import type { Employee } from './types';
+import type { Employee, PayrollRecord2026 } from './types';
 import { createTestEmployee } from './testFixtures';
 
 const storage = new Map<string, string>();
@@ -229,5 +230,55 @@ assert.equal(persistedDescriptions.deductionOthersDesc, 'Staff loan repayment');
 
 const recalculatedStatutory = calculatePayslip(persistedStatutoryEmployee, 8, 2026, { ignoreSavedStatutory: true });
 assert.notEqual(recalculatedStatutory.epfEmployeeValue, 111);
+
+const savedStandalonePayrollRecord: PayrollRecord2026 = {
+  id: 'employee_example_com_2026_08',
+  employeeEmail: 'employee@example.com',
+  payrollMonth: 8,
+  payrollYear: 2026,
+  paymentDate: '2026-08-28',
+  basicSalary: 1800,
+  allowanceGeneral: 120,
+  allowanceTransport: 0,
+  allowanceParking: 0,
+  allowanceMeal: 0,
+  allowanceAccommodation: 0,
+  allowancePhone: 0,
+  overtime: 0,
+  bonusAmount: 0,
+  commissionAmount: 0,
+  backPayAmount: 0,
+  awsAmount: 0,
+  compensationAmount: 0,
+  reimbursementAmount: 50,
+  unpaidLeave: 0,
+  deductionInLieu: 0,
+  deductionCp38: 0,
+  deductionOthers: 0,
+  payoutKind: 'regular',
+  isSeparatePayout: false,
+  documentType: 'Payslip',
+  compensationLabel: 'Basic Salary',
+  actualPCBDeducted: 12,
+  epfEmployee: 198,
+  epfEmployer: 234,
+  socsoEmployee: 9.75,
+  socsoEmployer: 34.15,
+  eisEmployee: 3.5,
+  eisEmployer: 3.5,
+  netPay: 1746.75,
+  createdAt: '2026-08-28T00:00:00+08:00'
+};
+const changedProfileEmployee = createEmployee({
+  email: 'employee@example.com',
+  basicSalary: 5000,
+  allowanceGeneral: 900,
+  reimbursementAmount: 0
+});
+const savedRecordBreakdown = calculatePayslipFromRecord(changedProfileEmployee, savedStandalonePayrollRecord);
+assert.equal(savedRecordBreakdown.grossEarnings, 1920);
+assert.equal(savedRecordBreakdown.reimbursementsSum, 50);
+assert.equal(savedRecordBreakdown.totalDeductions, 223.25);
+assert.equal(savedRecordBreakdown.netPay, savedStandalonePayrollRecord.netPay);
 
 console.log('Salary proration tests passed.');

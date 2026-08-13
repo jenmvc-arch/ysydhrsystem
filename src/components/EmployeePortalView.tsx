@@ -40,7 +40,7 @@ import EmployeeAvatar from './EmployeeAvatar';
 import PayslipDocumentView from './PayslipDocumentView';
 import PerformanceAppraisalForm from './PerformanceAppraisalForm';
 import { formatToDDMMMYYYY, getGmt8DateString, getGmt8LongDateString, getGmt8Timestamp } from '../lib/dateUtils';
-import { calculatePayslip, getPayrollDocumentProfile } from '../data';
+import { calculatePayslip, calculatePayslipFromRecord, getPayrollDocumentProfile, sortPayrollRecords } from '../data';
 import { DEFAULT_LEAVE_CONFIGS, LeaveRequest, LeaveConfig } from './LeaveManagementView';
 
 type PortalSection =
@@ -130,11 +130,6 @@ const savePreviewEmployeeOverrides = (employeeId: string, updates: PreviewEmploy
   });
 };
 
-const sortPayrollRecords = (records: PayrollRecord2026[]) =>
-  [...records].sort((left, right) =>
-    (right.payrollYear - left.payrollYear) || (right.payrollMonth - left.payrollMonth)
-  );
-
 const currency = (value: number) =>
   value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -220,7 +215,9 @@ export default function EmployeePortalView({
   const latestPayrollMonth = latestPayrollRecord?.payrollMonth || new Date().getMonth() + 1;
   const latestPayrollYear = latestPayrollRecord?.payrollYear || new Date().getFullYear();
   const latestPayrollBreakdown = selectedEmployee
-    ? calculatePayslip(selectedEmployee, latestPayrollMonth, latestPayrollYear)
+    ? latestPayrollRecord
+      ? calculatePayslipFromRecord(selectedEmployee, latestPayrollRecord)
+      : calculatePayslip(selectedEmployee, latestPayrollMonth, latestPayrollYear)
     : null;
   const latestPayrollDate = latestPayrollRecord?.paymentDate || selectedEmployee?.paymentDate || `${latestPayrollYear}-${String(latestPayrollMonth).padStart(2, '0')}-28`;
 
@@ -970,7 +967,7 @@ export default function EmployeePortalView({
 
         <div className="mt-6 space-y-3">
           {employeePayrollHistory.length > 0 ? employeePayrollHistory.map((record) => {
-            const breakdown = calculatePayslip(selectedEmployee, record.payrollMonth, record.payrollYear);
+            const breakdown = calculatePayslipFromRecord(selectedEmployee, record);
             const documentProfile = getPayrollDocumentProfile(selectedEmployee);
             return (
               <button

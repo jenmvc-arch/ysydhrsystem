@@ -8,6 +8,7 @@ import { Building2, Clock, CreditCard, FileText, PlusCircle } from 'lucide-react
 import type { CorporateEntity, Employee, PayrollRecord2026, PayrollPayoutKind } from '../types';
 import type { PayrollDocumentDisplaySettings } from '../types';
 import {
+  calculatePayslipFromRecord,
   calculateYtd,
   getDefaultPayrollDocumentDisplaySettings,
   getPayrollDocumentDisplaySettings,
@@ -16,7 +17,8 @@ import {
   getPayrollDocumentProfileForRecord,
   getSeparatePayoutConfig,
   isEmployeeEligibleForPayrollPeriod,
-  isSeparatePayrollRecord
+  isSeparatePayrollRecord,
+  sortPayrollRecords
 } from '../data';
 import PayslipDocumentView from './PayslipDocumentView';
 import PayrollEditorMockupView from './PayrollEditorMockupView';
@@ -348,17 +350,13 @@ export default function PayrollView({
       );
     }
 
-    const records = payrollRecords2026
-      .filter(record => (
+    const records = sortPayrollRecords(
+      payrollRecords2026.filter(record => (
         record?.employeeEmail &&
         activeEmployee.email &&
         record.employeeEmail.toLowerCase() === activeEmployee.email.toLowerCase()
       ))
-      .sort((a, b) => {
-        const monthDiff = a.payrollMonth - b.payrollMonth;
-        if (monthDiff !== 0) return monthDiff;
-        return String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
-      });
+    );
 
     const ytd = calculateYtd(activeEmployee, selectedPayPeriod);
 
@@ -405,6 +403,7 @@ export default function PayrollView({
               </thead>
               <tbody className="divide-y divide-neutral-border/50">
                 {records.map(record => {
+                  const recordBreakdown = calculatePayslipFromRecord(activeEmployee, record);
                   const recordAllowances = Number(record.allowanceGeneral || 0) +
                     Number(record.allowanceTransport || 0) +
                     Number(record.allowanceParking || 0) +
@@ -433,7 +432,7 @@ export default function PayrollView({
                       <td className="p-3 text-right font-mono text-on-surface-variant">{formatMoney(recordVariable)}</td>
                       <td className="p-3 text-right font-mono text-on-surface-variant">{formatMoney(record.epfEmployee)}</td>
                       <td className="p-3 text-right font-mono text-red-600">{formatMoney(record.actualPCBDeducted)}</td>
-                      <td className="p-3 text-right font-mono font-bold text-green-700">{formatMoney(record.netPay)}</td>
+                      <td className="p-3 text-right font-mono font-bold text-green-700">{formatMoney(recordBreakdown.netPay)}</td>
                       <td className="p-3 text-center">
                         <button
                           type="button"

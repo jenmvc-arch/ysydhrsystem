@@ -194,6 +194,18 @@ export function mergePayrollRecords2026(records: PayrollRecord2026[], recordToSa
   return [...filtered, recordToSave];
 }
 
+export function sortPayrollRecords<T extends { payrollMonth: number; payrollYear?: number; createdAt?: string }>(records: T[]): T[] {
+  return [...records].sort((left, right) => {
+    const yearDiff = Number(right.payrollYear || 0) - Number(left.payrollYear || 0);
+    if (yearDiff !== 0) return yearDiff;
+
+    const monthDiff = Number(right.payrollMonth || 0) - Number(left.payrollMonth || 0);
+    if (monthDiff !== 0) return monthDiff;
+
+    return String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
+  });
+}
+
 export function getSeparatePayoutDocumentProfile(kind: Exclude<PayrollPayoutKind, 'regular'>, statutoryTreatment: ContractStatutoryTreatment): PayrollDocumentProfile {
   const config = getSeparatePayoutConfig(kind);
   const statutoryEnabled = statutoryTreatment === 'with_statutory';
@@ -2749,6 +2761,90 @@ export function calculatePayslip(employee: Employee, month?: number, year?: numb
     allowancesSum,
     reimbursementsSum
   };
+}
+
+export function getPayslipEmployeeForRecord(employee: Employee, record: PayrollRecord2026): Employee {
+  const baseEmployee = getEmployeeForMonth(employee, record.payrollMonth, record.payrollYear);
+  const isSeparatePayoutDocument = isSeparatePayrollRecord(record);
+
+  return {
+    ...baseEmployee,
+    historicalPayrollRecords: [],
+    effectiveDatedProfiles: [],
+    salaryAdjustments: [],
+    careerHistory: [],
+    basicSalary: isSeparatePayoutDocument ? 0 : (record.basicSalary ?? baseEmployee.basicSalary),
+    allowanceGeneral: isSeparatePayoutDocument ? 0 : record.allowanceGeneral ?? baseEmployee.allowanceGeneral,
+    allowanceTransport: isSeparatePayoutDocument ? 0 : record.allowanceTransport ?? baseEmployee.allowanceTransport,
+    allowanceParking: isSeparatePayoutDocument ? 0 : record.allowanceParking ?? baseEmployee.allowanceParking,
+    allowanceMeal: isSeparatePayoutDocument ? 0 : record.allowanceMeal ?? baseEmployee.allowanceMeal,
+    allowanceAccommodation: isSeparatePayoutDocument ? 0 : record.allowanceAccommodation ?? baseEmployee.allowanceAccommodation,
+    allowancePhone: isSeparatePayoutDocument ? 0 : record.allowancePhone ?? baseEmployee.allowancePhone,
+    overtime: isSeparatePayoutDocument ? 0 : record.overtime ?? baseEmployee.overtime,
+    bonusAmount: isSeparatePayoutDocument ? Number(record.bonusAmount || 0) : (record.bonusAmount ?? baseEmployee.bonusAmount),
+    bonusDesc: record.bonusDesc ?? baseEmployee.bonusDesc,
+    commissionAmount: isSeparatePayoutDocument ? Number(record.commissionAmount || 0) : (record.commissionAmount ?? baseEmployee.commissionAmount),
+    commissionDesc: record.commissionDesc ?? baseEmployee.commissionDesc,
+    backPayAmount: isSeparatePayoutDocument ? 0 : record.backPayAmount ?? baseEmployee.backPayAmount,
+    backPayDesc: record.backPayDesc ?? baseEmployee.backPayDesc,
+    awsAmount: isSeparatePayoutDocument ? 0 : record.awsAmount ?? baseEmployee.awsAmount,
+    awsDesc: record.awsDesc ?? baseEmployee.awsDesc,
+    compensationAmount: isSeparatePayoutDocument ? Number(record.compensationAmount || 0) : record.compensationAmount ?? baseEmployee.compensationAmount,
+    compensationDesc: record.compensationDesc ?? baseEmployee.compensationDesc,
+    reimbursementAmount: isSeparatePayoutDocument ? Number(record.reimbursementAmount || 0) : (record.reimbursementAmount ?? baseEmployee.reimbursementAmount),
+    reimbursementDesc: record.reimbursementDesc ?? baseEmployee.reimbursementDesc,
+    unpaidLeave: record.unpaidLeave ?? baseEmployee.unpaidLeave,
+    deductionInLieu: record.deductionInLieu ?? baseEmployee.deductionInLieu,
+    deductionCp38: record.deductionCp38 ?? baseEmployee.deductionCp38,
+    deductionOthers: record.deductionOthers ?? baseEmployee.deductionOthers,
+    deductionOthersDesc: record.deductionOthersDesc ?? baseEmployee.deductionOthersDesc,
+    payslipDescriptions: record.payslipDescriptions ?? baseEmployee.payslipDescriptions,
+    contractStatutoryTreatment: record.statutoryTreatment ?? baseEmployee.contractStatutoryTreatment,
+    eligibleForStatutory: record.statutoryTreatment === 'with_statutory'
+      ? 'Yes'
+      : record.statutoryTreatment === 'without_statutory'
+        ? 'No'
+        : baseEmployee.eligibleForStatutory,
+    paymentDate: record.paymentDate || baseEmployee.paymentDate
+  };
+}
+
+export function calculatePayslipFromRecord(
+  employee: Employee,
+  record: PayrollRecord2026,
+  options: Pick<PayslipCalculationOptions, 'hrdCorpLocalWorkerCount' | 'hrdCorpVoluntaryOptIn'> = {}
+): PayslipBreakdown {
+  const payslipEmployee = getPayslipEmployeeForRecord(employee, record);
+  const isSeparatePayoutDocument = isSeparatePayrollRecord(record);
+  const documentProfile = getPayrollDocumentProfileForRecord(payslipEmployee, record);
+  const statutorySalaryOverride = isSeparatePayoutDocument
+    ? Number((
+      record.payoutKind === 'incentive_commission'
+        ? record.commissionAmount
+        : record.payoutKind === 'claim_reimbursement'
+          ? record.reimbursementAmount
+          : record.bonusAmount
+    ) || 0)
+    : undefined;
+
+  return calculatePayslip(payslipEmployee, record.payrollMonth, record.payrollYear, {
+    basicSalaryOverride: isSeparatePayoutDocument ? 0 : payslipEmployee.basicSalary,
+    statutorySalaryOverride,
+    statutoryEligibilityOverride: isSeparatePayoutDocument ? documentProfile.statutoryEnabled : undefined,
+    ignoreSavedStatutory: true,
+    hrdCorpLocalWorkerCount: options.hrdCorpLocalWorkerCount,
+    hrdCorpVoluntaryOptIn: options.hrdCorpVoluntaryOptIn ?? true,
+    statutoryOverrides: {
+      epfEmployee: record.epfEmployee,
+      epfEmployer: record.epfEmployer,
+      socsoEmployee: record.socsoEmployee,
+      socsoEmployer: record.socsoEmployer,
+      lindung24Employee: record.lindung24Employee,
+      eisEmployee: record.eisEmployee,
+      eisEmployer: record.eisEmployer,
+      taxPcb: record.actualPCBDeducted
+    }
+  });
 }
 
 export interface YtdBreakdown {
