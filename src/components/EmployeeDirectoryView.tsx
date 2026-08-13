@@ -136,6 +136,34 @@ const getAllowanceAmount = (
   .filter(allowance => allowance.type === type)
   .reduce((total, allowance) => total + Number(allowance.amount || 0), 0);
 
+const getEmployeeAllowanceAmount = (employee: Employee, type: AddEmployeeAllowanceKey) => {
+  switch (type) {
+    case 'allowanceAccommodation':
+      return employee.allowanceAccommodation !== undefined
+        ? Number(employee.allowanceAccommodation || 0)
+        : Number(employee.housingAllowance || 0);
+    case 'allowanceTransport':
+      return employee.allowanceTransport !== undefined
+        ? Number(employee.allowanceTransport || 0)
+        : Number(employee.transportAllowance || 0);
+    case 'allowanceGeneral':
+      return Number(employee.allowanceGeneral || 0);
+    case 'allowanceParking':
+      return Number(employee.allowanceParking || 0);
+    case 'allowanceMeal':
+      return Number(employee.allowanceMeal || 0);
+    case 'allowancePhone':
+      return Number(employee.allowancePhone || 0);
+    default:
+      return 0;
+  }
+};
+
+const getActiveEmployeeAllowanceTypes = (employee: Employee) =>
+  ADD_EMPLOYEE_ALLOWANCE_OPTIONS
+    .filter(option => getEmployeeAllowanceAmount(employee, option.value) > 0)
+    .map(option => option.value);
+
 const getEmployeeStatusClasses = (status: Employee['status']) => {
   switch (status) {
     case 'Active':
@@ -351,6 +379,7 @@ export default function EmployeeDirectoryView({
   const [editAllowanceParking, setEditAllowanceParking] = useState(0);
   const [editAllowanceMeal, setEditAllowanceMeal] = useState(0);
   const [editAllowancePhone, setEditAllowancePhone] = useState(0);
+  const [editVisibleAllowanceTypes, setEditVisibleAllowanceTypes] = useState<AddEmployeeAllowanceKey[]>([]);
   const [editNricPassport, setEditNricPassport] = useState('');
   const [editNationality, setEditNationality] = useState('');
   const [editContactNumber, setEditContactNumber] = useState('');
@@ -360,11 +389,84 @@ export default function EmployeeDirectoryView({
   const [editDateOfConfirmation, setEditDateOfConfirmation] = useState('');
   const [editEpfRateEmployee, setEditEpfRateEmployee] = useState(11);
   const [editEpfRateEmployer, setEditEpfRateEmployer] = useState(13);
-  const [editTaxPcb, setEditTaxPcb] = useState(0);
   const [editEmergencyContactName, setEditEmergencyContactName] = useState('');
   const [editEmergencyContactRelation, setEditEmergencyContactRelation] = useState('');
   const [editEmergencyContactPhone, setEditEmergencyContactPhone] = useState('');
   const [editEntityId, setEditEntityId] = useState('');
+
+  const getEditAllowanceAmount = (type: AddEmployeeAllowanceKey) => {
+    switch (type) {
+      case 'allowanceAccommodation':
+        return editHousingAllowance;
+      case 'allowanceTransport':
+        return editTransportAllowance;
+      case 'allowanceGeneral':
+        return editAllowanceGeneral;
+      case 'allowanceParking':
+        return editAllowanceParking;
+      case 'allowanceMeal':
+        return editAllowanceMeal;
+      case 'allowancePhone':
+        return editAllowancePhone;
+      default:
+        return 0;
+    }
+  };
+
+  const setEditAllowanceAmount = (type: AddEmployeeAllowanceKey, amount: number) => {
+    switch (type) {
+      case 'allowanceAccommodation':
+        setEditHousingAllowance(amount);
+        break;
+      case 'allowanceTransport':
+        setEditTransportAllowance(amount);
+        break;
+      case 'allowanceGeneral':
+        setEditAllowanceGeneral(amount);
+        break;
+      case 'allowanceParking':
+        setEditAllowanceParking(amount);
+        break;
+      case 'allowanceMeal':
+        setEditAllowanceMeal(amount);
+        break;
+      case 'allowancePhone':
+        setEditAllowancePhone(amount);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const getNextEditAllowanceType = () =>
+    ADD_EMPLOYEE_ALLOWANCE_OPTIONS.find(option =>
+      !editVisibleAllowanceTypes.includes(option.value)
+    )?.value;
+
+  const handleAddEditAllowance = () => {
+    const nextType = getNextEditAllowanceType();
+    if (!nextType) {
+      onShowNotification('Allowance Limit Reached', 'All allowance categories are already added.');
+      return;
+    }
+    setEditVisibleAllowanceTypes(prev => [...prev, nextType]);
+  };
+
+  const handleRemoveEditAllowance = (type: AddEmployeeAllowanceKey) => {
+    setEditAllowanceAmount(type, 0);
+    setEditVisibleAllowanceTypes(prev => prev.filter(allowanceType => allowanceType !== type));
+  };
+
+  const handleChangeEditAllowanceType = (
+    previousType: AddEmployeeAllowanceKey,
+    nextType: AddEmployeeAllowanceKey
+  ) => {
+    if (previousType === nextType) return;
+    const previousAmount = getEditAllowanceAmount(previousType);
+    setEditAllowanceAmount(previousType, 0);
+    setEditAllowanceAmount(nextType, previousAmount);
+    setEditVisibleAllowanceTypes(prev => prev.map(type => type === previousType ? nextType : type));
+  };
 
   const handleStartEditGeneralInfo = () => {
     if (!selectedEmployee) return;
@@ -383,6 +485,7 @@ export default function EmployeeDirectoryView({
     setEditAllowanceParking(selectedEmployee.allowanceParking || 0);
     setEditAllowanceMeal(selectedEmployee.allowanceMeal || 0);
     setEditAllowancePhone(selectedEmployee.allowancePhone || 0);
+    setEditVisibleAllowanceTypes(getActiveEmployeeAllowanceTypes(selectedEmployee));
     setEditNricPassport(formatNricOrPassport(selectedEmployee.nricPassport || ''));
     setEditNationality(toUppercase(selectedEmployee.nationality || ''));
     setEditContactNumber(selectedEmployee.contactNumber || '');
@@ -396,7 +499,11 @@ export default function EmployeeDirectoryView({
     setEditDateOfConfirmation(selectedEmployee.dateOfConfirmation || '');
     setEditEpfRateEmployee(selectedEmployee.epfRateEmployee !== undefined ? selectedEmployee.epfRateEmployee : 11);
     setEditEpfRateEmployer(selectedEmployee.epfRateEmployer !== undefined ? selectedEmployee.epfRateEmployer : 13);
-    setEditTaxPcb(selectedEmployee.taxPcb || 0);
+    setEditOptInEpf(selectedEmployee.optInEpf !== false);
+    setEditOptInSocso(selectedEmployee.optInSocso !== false);
+    setEditOptInEis(selectedEmployee.optInEis !== false);
+    setEditOptInPcb(selectedEmployee.optInPcb !== false);
+    setEditEnableLindung24(!!selectedEmployee.enableLindung24);
     setEditEmergencyContactName(toUppercase(selectedEmployee.emergencyContactName || ''));
     setEditEmergencyContactRelation(toUppercase(selectedEmployee.emergencyContactRelation || ''));
     setEditEmergencyContactPhone(toUppercase(selectedEmployee.emergencyContactPhone || ''));
@@ -481,7 +588,11 @@ export default function EmployeeDirectoryView({
       dateOfConfirmation: editEmploymentType === 'Confirmation' ? editDateOfConfirmation : '',
       epfRateEmployee: Number(editEpfRateEmployee),
       epfRateEmployer: Number(editEpfRateEmployer),
-      taxPcb: Number(editTaxPcb) > 0 ? Number(editTaxPcb) : 0,
+      optInEpf: updatedDocumentProfile.statutoryEnabled ? editOptInEpf : false,
+      optInSocso: updatedDocumentProfile.statutoryEnabled ? editOptInSocso : false,
+      optInEis: updatedDocumentProfile.statutoryEnabled ? editOptInEis : false,
+      optInPcb: updatedDocumentProfile.statutoryEnabled ? editOptInPcb : false,
+      enableLindung24: updatedDocumentProfile.statutoryEnabled ? editEnableLindung24 : false,
       emergencyContactName: editEmergencyContactName,
       emergencyContactRelation: editEmergencyContactRelation,
       emergencyContactPhone: editEmergencyContactPhone,
@@ -595,12 +706,14 @@ export default function EmployeeDirectoryView({
   const [editEnableLindung24, setEditEnableLindung24] = useState<boolean>(false);
   const [editTaxNumber, setEditTaxNumber] = useState('');
   const [editEpfNumber, setEditEpfNumber] = useState('');
-  const [isEditingStatutorySettings, setIsEditingStatutorySettings] = useState(false);
 
   // Temp dependant fields for detail editor
   const [detailTempDepName, setDetailTempDepName] = useState('');
   const [detailTempDepGender, setDetailTempDepGender] = useState<'Male' | 'Female'>('Male');
   const [detailTempDepDob, setDetailTempDepDob] = useState('2018-01-01');
+
+  const isContractEmploymentType = (employmentType: string) =>
+    employmentType === 'Contract' || employmentType === 'Fixed Term Contract';
 
   // Progression Action states
   const [progressionType, setProgressionType] = useState<'Status Change' | 'Promotion' | 'Department Transfer' | 'Salary Revision' | 'Employment Type Change' | 'Subsidiary Transfer'>('Status Change');
@@ -617,10 +730,17 @@ export default function EmployeeDirectoryView({
   // Selected Employee object (synchronized with parent state in real time)
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId) || null;
   const selectedPayrollDocumentProfile = selectedEmployee ? getPayrollDocumentProfile(selectedEmployee) : null;
-  const selectedEmployeePayslipBreakdown = selectedEmployee
-    ? calculatePayslip(selectedEmployee, currentMonth, currentYear)
+  const editingPayrollDocumentProfile = selectedEmployee
+    ? getPayrollDocumentProfile({
+      employmentType: editEmploymentType as Employee['employmentType'],
+      contractStatutoryTreatment: isContractEmploymentType(editEmploymentType)
+        ? editContractStatutoryTreatment
+        : undefined
+    })
     : null;
-
+  const activeStatutoryDocumentProfile = isEditingGeneralInfo
+    ? editingPayrollDocumentProfile
+    : selectedPayrollDocumentProfile;
   const getAccountSummary = (employee: Employee): EmployeeAccountSummary => (
     accountSummaries[employee.id]
     || accountSummaries[employee.email.trim().toLowerCase()]
@@ -751,12 +871,8 @@ export default function EmployeeDirectoryView({
   const [localStatus, setLocalStatus] = useState<Employee['status']>('Active');
   const [localEmploymentType, setLocalEmploymentType] = useState<Employee['employmentType']>('Confirmation');
   const [localBasicSalary, setLocalBasicSalary] = useState(0);
-  const [localTaxPcb, setLocalTaxPcb] = useState(0);
   const [localEntityId, setLocalEntityId] = useState('');
   const [localEffectiveDatedProfiles, setLocalEffectiveDatedProfiles] = useState<EmployeeTaxProfile[]>([]);
-
-  const isContractEmploymentType = (employmentType: string) =>
-    employmentType === 'Contract' || employmentType === 'Fixed Term Contract';
 
   const formPayrollDocumentProfile = getPayrollDocumentProfile({
     employmentType: formEmploymentType,
@@ -777,7 +893,6 @@ export default function EmployeeDirectoryView({
       );
       setLocalEmploymentType(selectedEmployee.employmentType);
       setLocalBasicSalary(selectedEmployee.basicSalary);
-      setLocalTaxPcb(selectedEmployee.taxPcb || 0);
       setLocalEntityId(selectedEmployee.entityId);
       setLocalEffectiveDatedProfiles(selectedEmployee.effectiveDatedProfiles || []);
     }
@@ -850,7 +965,6 @@ export default function EmployeeDirectoryView({
         status: currentStatus,
         employmentType: localEmploymentType,
         basicSalary: localBasicSalary,
-        taxPcb: Number(localTaxPcb) > 0 ? Number(localTaxPcb) : 0,
         entityId: localEntityId,
         salaryAdjustments: localSalaryAdjustments,
         careerHistory: localCareerHistory,
@@ -1022,37 +1136,6 @@ export default function EmployeeDirectoryView({
     setEditTaxNumber(toUppercase(selectedEmployee.taxNumber || ''));
     setEditEpfNumber(toUppercase(selectedEmployee.epfNumber || ''));
     setIsEditingFamily(true);
-  };
-
-  const handleStartEditStatutorySettings = () => {
-    if (!selectedEmployee) return;
-    setEditOptInEpf(selectedEmployee.optInEpf !== false);
-    setEditOptInSocso(selectedEmployee.optInSocso !== false);
-    setEditOptInEis(selectedEmployee.optInEis !== false);
-    setEditOptInPcb(selectedEmployee.optInPcb !== false);
-    setEditEnableLindung24(!!selectedEmployee.enableLindung24);
-    setIsEditingStatutorySettings(true);
-  };
-
-  const handleSaveStatutorySettings = async () => {
-    if (!selectedEmployee) return;
-    const updates: Partial<Employee> = {
-      optInEpf: editOptInEpf,
-      optInSocso: editOptInSocso,
-      optInEis: editOptInEis,
-      optInPcb: editOptInPcb,
-      enableLindung24: editEnableLindung24,
-    };
-    setSavingAction('statutory');
-    try {
-      await onUpdateEmployee(selectedEmployee.id, updates);
-      setIsEditingStatutorySettings(false);
-      onShowNotification('Statutory Settings Saved', 'Statutory opt-in/opt-out preferences updated and saved.');
-    } catch (error) {
-      console.error('[Statutory Save] Failed:', error);
-    } finally {
-      setSavingAction(null);
-    }
   };
 
   const handleSaveFamilyUpdates = async () => {
@@ -3121,25 +3204,21 @@ export default function EmployeeDirectoryView({
                       <div className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
                         <DollarSign className="w-4 h-4 text-primary" /> BASELINE COMPENSATION STRUCTURE
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                         <div>
                           <span className="text-outline text-[9px] block uppercase font-bold">Basic Monthly Base</span>
                           <span className="font-mono font-bold text-sm text-primary">RM {selectedEmployee.basicSalary.toLocaleString()}</span>
                         </div>
-                        <div>
-                          <span className="text-outline text-[9px] block uppercase font-bold">Housing Allowance</span>
-                          <span className="font-mono text-on-surface">RM {selectedEmployee.housingAllowance.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-outline text-[9px] block uppercase font-bold">Transport Allowance</span>
-                          <span className="font-mono text-on-surface">RM {selectedEmployee.transportAllowance.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-outline text-[9px] block uppercase font-bold">Statutory Tax PCB</span>
-                          <span className="font-mono text-on-surface">
-                            RM {(selectedEmployeePayslipBreakdown?.taxPcbVal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
+                        {ADD_EMPLOYEE_ALLOWANCE_OPTIONS
+                          .filter(option => getEmployeeAllowanceAmount(selectedEmployee, option.value) > 0)
+                          .map(option => (
+                            <div key={option.value}>
+                              <span className="text-outline text-[9px] block uppercase font-bold">{option.label}</span>
+                              <span className="font-mono text-on-surface">
+                                RM {getEmployeeAllowanceAmount(selectedEmployee, option.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          ))}
                       </div>
                     </div>
                   </>
@@ -3338,7 +3417,7 @@ export default function EmployeeDirectoryView({
                     {/* Financial & Allowances Details Section */}
                     <div className="bg-neutral-50 p-4 border border-neutral-border rounded-lg space-y-3">
                       <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">Baseline Compensation & Allowances</span>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Basic Monthly Base (RM)</label>
                           <input
@@ -3348,71 +3427,65 @@ export default function EmployeeDirectoryView({
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           />
                         </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Housing Allowance (RM)</label>
-                          <input
-                            type="number"
-                            value={editHousingAllowance}
-                            onChange={(e) => setEditHousingAllowance(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Transport Allowance (RM)</label>
-                          <input
-                            type="number"
-                            value={editTransportAllowance}
-                            onChange={(e) => setEditTransportAllowance(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">General Allowance (RM)</label>
-                          <input
-                            type="number"
-                            value={editAllowanceGeneral}
-                            onChange={(e) => setEditAllowanceGeneral(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Parking Allowance (RM)</label>
-                          <input
-                            type="number"
-                            value={editAllowanceParking}
-                            onChange={(e) => setEditAllowanceParking(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Meal Allowance (RM)</label>
-                          <input
-                            type="number"
-                            value={editAllowanceMeal}
-                            onChange={(e) => setEditAllowanceMeal(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Phone Allowance (RM)</label>
-                          <input
-                            type="number"
-                            value={editAllowancePhone}
-                            onChange={(e) => setEditAllowancePhone(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Manual PCB override (RM)</label>
-                          <input
-                            type="number"
-                            value={editTaxPcb}
-                            onChange={(e) => setEditTaxPcb(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                          <p className="mt-1 text-[10px] text-on-surface-variant">
-                            Leave as 0 to auto-calculate PCB only when salary is taxable.
-                          </p>
+                        <div className="sm:col-span-2 rounded-lg border border-dashed border-neutral-border bg-surface-container-low p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <span className="block text-[10px] font-bold text-on-surface-variant uppercase">Other Allowances</span>
+                              <p className="mt-0.5 text-[10px] text-on-surface-variant">Only active allowances are shown. Use + to add another allowance.</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleAddEditAllowance}
+                              disabled={!getNextEditAllowanceType()}
+                              className="inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-neutral-border disabled:text-on-surface-variant"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add Allowance
+                            </button>
+                          </div>
+                          {editVisibleAllowanceTypes.length > 0 ? (
+                            <div className="mt-3 space-y-2">
+                              {editVisibleAllowanceTypes.map((allowanceType) => (
+                                <div key={allowanceType} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,0.9fr)_auto]">
+                                  <select
+                                    value={allowanceType}
+                                    onChange={(e) => handleChangeEditAllowanceType(allowanceType, e.target.value as AddEmployeeAllowanceKey)}
+                                    className="w-full rounded border border-neutral-border bg-white p-2 text-xs font-semibold text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                                  >
+                                    {ADD_EMPLOYEE_ALLOWANCE_OPTIONS
+                                      .filter(option =>
+                                        option.value === allowanceType ||
+                                        !editVisibleAllowanceTypes.includes(option.value)
+                                      )
+                                      .map(option => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                      ))}
+                                  </select>
+                                  <div className="relative">
+                                    <span className="absolute left-2 top-2 text-[10px] text-outline">RM</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={getEditAllowanceAmount(allowanceType)}
+                                      onChange={(e) => setEditAllowanceAmount(allowanceType, Number(e.target.value))}
+                                      className="w-full rounded border border-neutral-border bg-white py-2 pl-8 pr-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveEditAllowance(allowanceType)}
+                                    className="inline-flex h-9 items-center justify-center rounded border border-red-200 bg-red-50 px-3 text-red-600 transition hover:bg-red-100"
+                                    aria-label="Remove allowance"
+                                  >
+                                    <Trash className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-3 rounded border border-neutral-border bg-white px-3 py-2 text-[11px] font-medium text-on-surface-variant">
+                              No allowance added yet. Click + Add Allowance to include one.
+                            </div>
+                          )}
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Employee EPF Rate (%)</label>
@@ -3500,44 +3573,22 @@ export default function EmployeeDirectoryView({
                     <h4 className="font-bold text-xs text-primary uppercase tracking-wider flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-primary" /> Statutory Settings
                     </h4>
-	                    {!selectedPayrollDocumentProfile?.statutoryEnabled ? (
-	                      <span className="rounded bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800">
-	                        Not applicable
-	                      </span>
-	                    ) : !isEditingStatutorySettings ? (
-	                      <button
-                        type="button"
-                        onClick={handleStartEditStatutorySettings}
-                        className="text-primary hover:bg-primary/10 px-2 py-1 rounded transition-colors text-xs font-semibold cursor-pointer border border-primary/20"
-                      >
-                        Edit Statutory Settings
-                      </button>
-                    ) : (
-                      <div className="flex gap-1.5">
-                        <button 
-                          type="button"
-                          onClick={() => setIsEditingStatutorySettings(false)}
-                          className="text-on-surface-variant hover:bg-surface-container px-2 py-1 rounded transition-colors text-xs font-semibold cursor-pointer border border-neutral-border"
-                        >
-                          Cancel
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={handleSaveStatutorySettings}
-                          disabled={savingAction === 'statutory'}
-                          className="bg-primary text-white hover:bg-primary-container px-2 py-1 rounded transition-colors text-xs font-semibold cursor-pointer"
-                        >
-                          {savingAction === 'statutory' ? 'Saving...' : 'Save'}
-                        </button>
-                      </div>
-                    )}
+                    {!activeStatutoryDocumentProfile?.statutoryEnabled ? (
+                      <span className="rounded bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                        Not applicable
+                      </span>
+                    ) : isEditingGeneralInfo ? (
+                      <span className="rounded bg-primary/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                        Editing with profile
+                      </span>
+                    ) : null}
                   </div>
 
-	                  {!selectedPayrollDocumentProfile?.statutoryEnabled ? (
-	                    <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
-	                      Not applicable for this employment type. Statutory deductions and employer contributions will remain RM 0.00.
-	                    </div>
-	                  ) : !isEditingStatutorySettings ? (
+                  {!activeStatutoryDocumentProfile?.statutoryEnabled ? (
+                    <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+                      Not applicable for this employment type. Statutory deductions and employer contributions will remain RM 0.00.
+                    </div>
+                  ) : !isEditingGeneralInfo ? (
                     /* VIEW MODE: Tick box for opt in, Cross box for opt out */
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div className="flex justify-between items-center bg-white p-2 rounded border border-neutral-border/50 shadow-xs">
