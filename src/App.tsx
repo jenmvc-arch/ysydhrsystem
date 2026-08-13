@@ -760,7 +760,6 @@ export default function App() {
             googleScriptUrl: e.googleScriptUrl || ''
           }));
           setEntities(loadedEntities);
-          setActiveEntityId(loadedEntities[0]?.id || '');
         }
 
         // 1.5. Group and load other payloads from individual scripts
@@ -947,7 +946,7 @@ export default function App() {
           } catch (err) {
             console.error('Error parsing salaryAdjustments for employee', e.id, err);
           }
-          let resolvedEntityId = e.entityName || e.entityId || '';
+          let resolvedEntityId = e.entityId || e.entityName || '';
           if (!resolvedEntityId) {
             resolvedEntityId = loadedEntities[0]?.id || '';
           }
@@ -1047,6 +1046,28 @@ export default function App() {
           };
         });
         setEmployees(parsedEmployees);
+        const activeLoadedEntityIds = new Set(
+          loadedEntities
+            .filter(entity => entity.isActive)
+            .map(entity => entity.id)
+        );
+        const savedEntityId = localStorage.getItem('active_corporate_entity_id') || '';
+        const savedEntityHasEmployees = parsedEmployees.some(employee => employee.entityId === savedEntityId);
+        const firstEntityWithEmployees = loadedEntities.find(entity => (
+          entity.isActive &&
+          parsedEmployees.some(employee => employee.entityId === entity.id)
+        ));
+        const nextActiveEntityId = (
+          savedEntityId &&
+          activeLoadedEntityIds.has(savedEntityId) &&
+          (savedEntityHasEmployees || !firstEntityWithEmployees)
+        )
+          ? savedEntityId
+          : (firstEntityWithEmployees?.id || loadedEntities.find(entity => entity.isActive)?.id || loadedEntities[0]?.id || '');
+        setActiveEntityId(nextActiveEntityId);
+        if (nextActiveEntityId) {
+          localStorage.setItem('active_corporate_entity_id', nextActiveEntityId);
+        }
 
         // Parse performances
         setPerformances(uniquePerformances.map((p: any) => ({
