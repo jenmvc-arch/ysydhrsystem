@@ -721,12 +721,6 @@ export default function EmployeeDirectoryView({
   const [progressionNotes, setProgressionNotes] = useState('');
   const [progressionDate, setProgressionDate] = useState(getGmt8DateString());
 
-  // Salary Adjustment form states
-  const [adjStartDate, setAdjStartDate] = useState(getGmt8DateString());
-  const [adjEffectiveDate, setAdjEffectiveDate] = useState(getGmt8DateString());
-  const [adjSalary, setAdjSalary] = useState(0);
-  const [adjReason, setAdjReason] = useState('');
-
   // Selected Employee object (synchronized with parent state in real time)
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId) || null;
   const selectedPayrollDocumentProfile = selectedEmployee ? getPayrollDocumentProfile(selectedEmployee) : null;
@@ -905,48 +899,6 @@ export default function EmployeeDirectoryView({
     ...profiles.filter(existing => existing.effectiveDate !== profile.effectiveDate),
     profile
   ].sort((left, right) => left.effectiveDate.localeCompare(right.effectiveDate));
-
-  const handleSalaryAdjustmentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEmployee) return;
-    if (adjSalary <= 0) {
-      onShowNotification('Validation Error', 'Adjusted salary must be greater than RM 0.');
-      return;
-    }
-    if (!adjStartDate || !adjEffectiveDate) {
-      onShowNotification('Validation Error', 'Start date and Effective date are required.');
-      return;
-    }
-
-    const newAdj = {
-      id: `adj-${Date.now()}`,
-      startDate: adjStartDate,
-      effectiveDate: adjEffectiveDate,
-      adjustedSalary: adjSalary,
-      reason: adjReason || 'Salary Adjustment',
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedAdjustments = [...localSalaryAdjustments, newAdj].sort((a, b) => new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime());
-    setLocalSalaryAdjustments(updatedAdjustments);
-
-    onShowNotification(
-      'Salary Staged',
-      `New salary of RM ${adjSalary.toLocaleString()} is staged. Click the Save button at the bottom to write changes to database.`
-    );
-
-    // Reset inputs
-    setAdjSalary(0);
-    setAdjReason('');
-  };
-
-  const handleRemoveSalaryAdjustment = (adjId: string) => {
-    if (window.confirm('Are you sure you want to delete this salary adjustment from staged updates?')) {
-      const updatedAdjustments = localSalaryAdjustments.filter(adj => adj.id !== adjId);
-      setLocalSalaryAdjustments(updatedAdjustments);
-      onShowNotification('Staged Deleted', 'Salary adjustment removed from staged updates.');
-    }
-  };
 
   const handleSaveCareerChanges = async () => {
     if (!selectedEmployee) return;
@@ -4130,116 +4082,7 @@ export default function EmployeeDirectoryView({
                             {/* Right Column: Career Progression Form & Historic Timeline */}
               <div className="lg:col-span-5 p-6 flex flex-col justify-between space-y-6">
                 
-                {/* Section 1: Salary Adjustment History & Administration */}
-                <div className="bg-surface-container-low border border-neutral-border p-4 rounded-lg space-y-4">
-                  <div className="border-b border-neutral-border pb-2">
-                    <h4 className="font-bold text-xs text-primary uppercase tracking-wider flex items-center gap-1.5">
-                      <DollarSign className="w-4 h-4 text-primary" /> Salary Adjustment Registry
-                    </h4>
-                    <p className="text-[10px] text-on-surface-variant">Schedule baseline salary modifications with start dates and effective dates.</p>
-                  </div>
-
-                  {/* Add adjustment sub-form */}
-                  <form onSubmit={handleSalaryAdjustmentSubmit} className="space-y-3 text-xs">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Start Date</label>
-                        <input 
-                          type="date" 
-                          required
-                          value={adjStartDate} 
-                          onChange={(e) => setAdjStartDate(e.target.value)}
-                          className="w-full bg-white border border-neutral-border rounded p-1.5 text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Effective Date</label>
-                        <input 
-                          type="date" 
-                          required
-                          value={adjEffectiveDate} 
-                          onChange={(e) => setAdjEffectiveDate(e.target.value)}
-                          className="w-full bg-white border border-neutral-border rounded p-1.5 text-xs outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Adjusted Salary (RM)</label>
-                        <input 
-                          type="number" 
-                          required 
-                          min="1"
-                          value={adjSalary || ''} 
-                          onChange={(e) => setAdjSalary(Number(e.target.value))}
-                          placeholder="e.g. 6200"
-                          className="w-full bg-white border border-neutral-border rounded p-1.5 text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Reason / Notes</label>
-                        <input 
-                          type="text" 
-                          value={adjReason} 
-                          onChange={(e) => setAdjReason(e.target.value)}
-                          placeholder="e.g. Promotion revision"
-                          className="w-full bg-white border border-neutral-border rounded p-1.5 text-xs outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <button 
-                      type="submit"
-                      className="w-full bg-primary text-white py-1.5 rounded text-xs font-semibold hover:bg-primary-container transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Add Salary Adjustment
-                    </button>
-                  </form>
-
-                  {/* List of adjustments */}
-                  <div className="pt-2 border-t border-neutral-border/40">
-                    <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Logged Adjustments History</span>
-                    {localSalaryAdjustments && localSalaryAdjustments.length > 0 ? (
-                      <div className="bg-white border border-neutral-border rounded overflow-hidden max-h-[140px] overflow-y-auto">
-                        <table className="w-full text-left text-[10px]">
-                          <thead className="bg-surface-container-low border-b border-neutral-border text-[8px] uppercase text-on-surface-variant font-bold">
-                            <tr>
-                              <th className="p-1.5">Start</th>
-                              <th className="p-1.5">Effective</th>
-                              <th className="p-1.5 text-right">Salary (RM)</th>
-                              <th className="p-1.5">Reason</th>
-                              <th className="p-1.5 w-8"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-neutral-border/40 font-medium">
-                            {localSalaryAdjustments.map((adj) => (
-                              <tr key={adj.id} className="hover:bg-zinc-50/50">
-                                <td className="p-1.5 font-mono">{adj.startDate}</td>
-                                <td className="p-1.5 font-mono font-bold text-primary">{adj.effectiveDate}</td>
-                                <td className="p-1.5 font-mono text-right font-bold text-on-surface">RM {adj.adjustedSalary.toLocaleString()}</td>
-                                <td className="p-1.5 truncate max-w-[80px]" title={adj.reason}>{adj.reason}</td>
-                                <td className="p-1.5 text-right">
-                                  <button
-                                    onClick={() => handleRemoveSalaryAdjustment(adj.id)}
-                                    className="text-red-600 hover:text-red-800 font-bold px-1"
-                                    title="Delete adjustment"
-                                  >
-                                    ×
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <p className="text-[10px] italic text-on-surface-variant text-center py-2">No adjustments scheduled. Basic salary baseline applies.</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Section 2: Change Employment Status (The Action) */}
+                {/* Section 1: Change Employment Status (The Action) */}
                 <div className="bg-surface-container-low border border-neutral-border p-4 rounded-lg space-y-4">
                   <div className="border-b border-neutral-border pb-2">
                     <h4 className="font-bold text-xs text-primary uppercase tracking-wider flex items-center gap-1.5">
