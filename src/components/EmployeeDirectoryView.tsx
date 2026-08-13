@@ -3393,70 +3393,102 @@ export default function EmployeeDirectoryView({
                     {/* Financial & Allowances Details Section */}
                     <div className="bg-neutral-50 p-4 border border-neutral-border rounded-lg space-y-3">
                       <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">Baseline Compensation & Allowances</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-4">
                         <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Basic Monthly Base (RM)</label>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">Basic Monthly Base (RM)</label>
                           <input
                             type="number"
                             value={editBasicSalary}
                             onChange={(e) => setEditBasicSalary(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm"
                           />
                         </div>
-                        <div className="sm:col-span-2 rounded border border-primary/20 bg-primary/5 p-3">
-                          <span className="block text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Statutory Registration Numbers</span>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">TIN Number (Tax Number)</label>
-                              <input
-                                type="text"
-                                value={editTaxNumber}
-                                onChange={(e) => setEditTaxNumber(toUppercase(e.target.value))}
-                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">KWSP Number (EPF)</label>
-                              <input
-                                type="text"
-                                value={editEpfNumber}
-                                onChange={(e) => setEditEpfNumber(toUppercase(e.target.value))}
-                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">SOCSO Number</label>
-                              <input
-                                type="text"
-                                value={editSocsoNumber}
-                                onChange={(e) => {
-                                  setEditSocsoNumber(e.target.value.replace(/-/g, ''));
-                                  setIsEditSocsoNumberAutoFilled(false);
-                                }}
-                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
-                              />
-                              <p className="mt-1 text-[10px] text-on-surface-variant">
-                                Auto-filled from NRIC without hyphens; editable.
-                              </p>
-                            </div>
-                          </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">Employee EPF Rate (%)</label>
+                          <input
+                            type="number"
+                            value={editEpfRateEmployee}
+                            onChange={(e) => setEditEpfRateEmployee(Number(e.target.value))}
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm"
+                          />
                         </div>
-                        <div className="sm:col-span-2 rounded-lg border border-dashed border-neutral-border bg-surface-container-low p-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">Employer EPF Rate (%)</label>
+                          <input
+                            type="number"
+                            value={editEpfRateEmployer}
+                            onChange={(e) => setEditEpfRateEmployer(Number(e.target.value))}
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">TIN Number (Tax Number)</label>
+                          <input
+                            type="text"
+                            value={editTaxNumber}
+                            onChange={(e) => setEditTaxNumber(toUppercase(e.target.value))}
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">KWSP Number (EPF)</label>
+                          <input
+                            type="text"
+                            value={editEpfNumber}
+                            onChange={(e) => setEditEpfNumber(toUppercase(e.target.value))}
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">SOCSO Number</label>
+                          <input
+                            type="text"
+                            value={editSocsoNumber}
+                            onChange={(e) => {
+                              setEditSocsoNumber(e.target.value.replace(/-/g, ''));
+                              setIsEditSocsoNumberAutoFilled(false);
+                            }}
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">Bank Name</label>
+                          <input
+                            type="text"
+                            list="employee-edit-bank-options"
+                            value={editBankName}
+                            onChange={(e) => setEditBankName(toUppercase(e.target.value))}
+                            placeholder="Select or enter bank name"
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm"
+                          />
+                          <datalist id="employee-edit-bank-options">
+                            {MALAYSIAN_BANK_NAMES.map(bank => <option key={bank} value={bank} />)}
+                          </datalist>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1.5">Bank Account Number</label>
+                          <input
+                            type="text"
+                            value={editAccountNo}
+                            onChange={(e) => setEditAccountNo(toUppercase(e.target.value))}
+                            className="w-full bg-white border border-neutral-border rounded-md px-2.5 py-2.5 focus:ring-1 focus:ring-primary outline-none text-sm"
+                          />
+                        </div>
+                        <div className="sm:col-span-3 rounded-md border border-dashed border-[#e9c9c4] bg-[#fffaf9] p-2.5">
                           <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <span className="block text-[10px] font-bold text-on-surface-variant uppercase">Other Allowances</span>
-                              <p className="mt-0.5 text-[10px] text-on-surface-variant">Only active allowances are shown. Use + to add another allowance.</p>
-                            </div>
+                            <p className="text-[11px] font-semibold text-on-surface-variant">
+                              Only applicable allowances are shown. Add another when needed.
+                            </p>
                             <button
                               type="button"
                               onClick={handleAddEditAllowance}
                               disabled={!getNextEditAllowanceType()}
-                              className="inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white transition hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-neutral-border disabled:text-on-surface-variant"
+                              className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#fff0ee] px-3 py-2 text-[10px] font-bold text-[#b3261e] transition hover:bg-[#ffe2de] disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              <Plus className="h-3.5 w-3.5" /> Add Allowance
+                              <Plus className="h-3.5 w-3.5" /> Add allowance
                             </button>
                           </div>
-                          {editVisibleAllowanceTypes.length > 0 ? (
+                          {editVisibleAllowanceTypes.length > 0 && (
                             <div className="mt-3 space-y-2">
                               {editVisibleAllowanceTypes.map((allowanceType) => (
                                 <div key={allowanceType} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,0.9fr)_auto]">
@@ -3495,52 +3527,7 @@ export default function EmployeeDirectoryView({
                                 </div>
                               ))}
                             </div>
-                          ) : (
-                            <div className="mt-3 rounded border border-neutral-border bg-white px-3 py-2 text-[11px] font-medium text-on-surface-variant">
-                              No allowance added yet. Click + Add Allowance to include one.
-                            </div>
                           )}
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Employee EPF Rate (%)</label>
-                          <input
-                            type="number"
-                            value={editEpfRateEmployee}
-                            onChange={(e) => setEditEpfRateEmployee(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Employer EPF Rate (%)</label>
-                          <input
-                            type="number"
-                            value={editEpfRateEmployer}
-                            onChange={(e) => setEditEpfRateEmployer(Number(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Bank Name</label>
-                          <input
-                            type="text"
-                            list="employee-edit-bank-options"
-                            value={editBankName}
-                            onChange={(e) => setEditBankName(toUppercase(e.target.value))}
-                            placeholder="Select or enter bank name"
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
-                          <datalist id="employee-edit-bank-options">
-                            {MALAYSIAN_BANK_NAMES.map(bank => <option key={bank} value={bank} />)}
-                          </datalist>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Bank Account Number</label>
-                          <input
-                            type="text"
-                            value={editAccountNo}
-                            onChange={(e) => setEditAccountNo(toUppercase(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
-                          />
                         </div>
                       </div>
                     </div>
