@@ -332,12 +332,12 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         {/* Logo at the top center */}
           <img
             src="/redpoint-logo.png"
-            alt="HR Precision Console logo"
+            alt="YSYD HRMS logo"
             className="h-16 w-auto mb-8 object-contain drop-shadow-sm"
             onError={(e) => {
               // Fallback if logo is missing
               e.currentTarget.style.display = 'none';
-            e.currentTarget.parentElement?.insertAdjacentHTML('afterbegin', '<div class="text-primary font-bold text-2xl mb-8 tracking-tight">HR Precision Console</div>');
+            e.currentTarget.parentElement?.insertAdjacentHTML('afterbegin', '<div class="text-primary font-bold text-2xl mb-8 tracking-tight">YSYD HRMS</div>');
             }}
           />
 
@@ -350,7 +350,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             </h2>
             <p className="text-sm text-on-surface-variant mt-1">
               {loginPortal === 'admin'
-                ? 'Access the Industrial Precision HR console'
+                ? 'Access the YSYD HRMS console'
                 : 'Access your personal employee workspace'}
             </p>
           </div>
@@ -530,7 +530,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
       {/* Footer */}
       <footer className="absolute bottom-6 w-full text-center z-10">
         <p className="text-sm font-medium text-gray-500">
-          © 2026 HR Precision Console. All rights reserved.
+          © 2026 YSYD HRMS. All rights reserved.
         </p>
       </footer>
 

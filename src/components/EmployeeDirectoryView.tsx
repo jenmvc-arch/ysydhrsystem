@@ -2184,7 +2184,7 @@ export default function EmployeeDirectoryView({
                       <div className="w-14 h-14 rounded-lg bg-white border border-neutral-border/40 flex items-center justify-center overflow-hidden shrink-0 shadow-xs relative">
                         <img 
                           src="/redpoint-logo.png" 
-                          alt="RedPoint Logo" 
+                          alt="YSYD HRMS Logo"
                           className="w-full h-full object-contain" 
                         />
                       </div>

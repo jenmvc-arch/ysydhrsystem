@@ -382,7 +382,7 @@ export default function PayslipDocumentView({
               <div className="w-44 h-16 rounded bg-white flex items-center justify-center overflow-hidden shrink-0 relative">
                 <img 
                   src="/redpoint-logo.png" 
-                  alt="RedPoint Logo" 
+                  alt="YSYD HRMS Logo"
                   className="w-full h-full object-contain" 
                 />
               </div>

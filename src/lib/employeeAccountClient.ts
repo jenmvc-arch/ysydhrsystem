@@ -84,7 +84,7 @@ const buildPreviewDelivery = (
 ): AccountDeliveryResult => {
   const link = createPreviewLink(employee, action);
   const message = [
-    `RedPoint HRMS account for ${employee.name}`,
+    `YSYD HRMS account for ${employee.name}`,
     `Username: ${employee.email}`,
     `Open this one-time ${action === 'invite' ? 'setup' : 'password reset'} link: ${link}`,
   ].join('\n');
@@ -95,7 +95,7 @@ const buildPreviewDelivery = (
       provider: 'Local preview',
       status: 'handoff',
       recipient: employee.email,
-      handoffUrl: `mailto:${encodeURIComponent(employee.email)}?subject=${encodeURIComponent('RedPoint HRMS account access')}&body=${encodeURIComponent(message)}`,
+      handoffUrl: `mailto:${encodeURIComponent(employee.email)}?subject=${encodeURIComponent('YSYD HRMS account access')}&body=${encodeURIComponent(message)}`,
     };
   }
 

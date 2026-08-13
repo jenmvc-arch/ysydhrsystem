@@ -442,7 +442,7 @@ export default function TaxSettingsView({
                         <p className="font-bold">Authorized Person Signature:</p>
                         {digitalSignature && (
                           <div className="mt-2 text-primary font-serif font-bold italic border border-primary/25 bg-primary/5 px-3 py-1 rounded w-max text-xs">
-                            RedPoint HRMS Digital Sign-Off
+                            YSYD HRMS Digital Sign-Off
                           </div>
                         )}
                         <p className="mt-2 text-gray-500">Designation: {authorizedSignatory}</p>
@@ -525,7 +525,7 @@ export default function TaxSettingsView({
 
                     <div className="pt-6 border-t border-gray-300 text-[10px] text-gray-500 flex justify-between">
                       <div>
-                        <p className="font-semibold">Prepared by RedPoint HRMS Auto-Compliance Platform</p>
+                        <p className="font-semibold">Prepared by YSYD HRMS Auto-Compliance Platform</p>
                         <p>Authorized Signatory: {authorizedSignatory}</p>
                       </div>
                       <div className="text-right">

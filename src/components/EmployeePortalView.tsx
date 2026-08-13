@@ -534,8 +534,8 @@ export default function EmployeePortalView({
     <div className="flex h-full flex-col bg-inverse-surface text-inverse-on-surface p-5">
       <div className="mb-6 rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_12px_24px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 overflow-hidden rounded-2xl bg-white">
-            <img src="/redpoint-logo.png" alt="RedPoint" className="h-full w-full object-contain p-1.5" />
+          <div className="h-12 w-12 overflow-hidden rounded-2xl">
+            <img src="/redpoint-logo.png" alt="YSYD HRMS" className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.35em] text-white/60">Employee Portal</p>

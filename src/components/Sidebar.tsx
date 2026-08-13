@@ -73,11 +73,11 @@ export default function Sidebar({
       {/* Brand Header with Corporate Selector */}
       <div className="px-5 mb-6 flex flex-col items-center gap-3 bg-white/5 p-4 rounded-lg mx-3 border border-white/10" style={{ viewTransitionName: 'sidebar-brand' } as any}>
         {/* Company Logo */}
-        <div className="w-36 h-12 rounded bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-white/10 relative" style={{ viewTransitionName: 'corporate-logo' } as any}>
+        <div className="w-36 h-12 rounded flex items-center justify-center overflow-hidden shrink-0 relative" style={{ viewTransitionName: 'corporate-logo' } as any}>
           <img 
             src="/redpoint-logo.png" 
-            alt="RedPoint Logo" 
-            className="w-full h-full object-contain p-1.5" 
+            alt="YSYD HRMS Logo"
+            className="w-full h-full object-contain"
           />
         </div>
 
