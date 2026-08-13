@@ -980,9 +980,13 @@ export default function App() {
             nricPassport: formatNricOrPassport(e.nricPassport || ''),
             nationality: e.nationality || 'Malaysian',
             contactNumber: e.contactNumber || '',
+            contactNumberFillLater: e.contactNumberFillLater === true ||
+              String(e.contactNumberFillLater).toLowerCase() === 'true',
             taxNumber: e.taxNumber || '',
             epfNumber: e.epfNumber || '',
             socsoNumber: e.socsoNumber || '',
+            emailFillLater: e.emailFillLater === true ||
+              String(e.emailFillLater).toLowerCase() === 'true',
             employmentType: e.employmentType || 'Confirmation',
             maritalStatus: e.maritalStatus || 'Single',
             eligibleForStatutory: e.eligibleForStatutory || 'Yes',
@@ -991,8 +995,17 @@ export default function App() {
             emergencyContactName: e.emergencyContactName || '',
             emergencyContactRelation: e.emergencyContactRelation || '',
             emergencyContactPhone: e.emergencyContactPhone || '',
+            emergencyContactFillLater: e.emergencyContactFillLater === true ||
+              String(e.emergencyContactFillLater).toLowerCase() === 'true',
             dateOfJoined: e.dateOfJoined || '',
             dateOfConfirmation: e.dateOfConfirmation || '',
+            probationDurationMonths: e.probationDurationMonths !== undefined && e.probationDurationMonths !== ''
+              ? Number(e.probationDurationMonths)
+              : undefined,
+            probationExtend: e.probationExtend === true || String(e.probationExtend).toLowerCase() === 'true',
+            probationExtensionMonths: e.probationExtensionMonths !== undefined && e.probationExtensionMonths !== ''
+              ? Number(e.probationExtensionMonths)
+              : undefined,
             dateOfTermination: e.dateOfTermination || '',
             careerHistory,
             dependants,
@@ -1498,9 +1511,11 @@ export default function App() {
           nricPassport: newEmployee.nricPassport,
           nationality: newEmployee.nationality,
           contactNumber: newEmployee.contactNumber,
+          contactNumberFillLater: newEmployee.contactNumberFillLater === true,
           taxNumber: newEmployee.taxNumber,
           epfNumber: newEmployee.epfNumber || '',
           socsoNumber: newEmployee.socsoNumber || '',
+          emailFillLater: newEmployee.emailFillLater === true,
           employmentType: newEmployee.employmentType,
           maritalStatus: newEmployee.maritalStatus,
           eligibleForStatutory: newEmployee.eligibleForStatutory || 'Yes',
@@ -1509,8 +1524,12 @@ export default function App() {
           emergencyContactName: newEmployee.emergencyContactName,
           emergencyContactRelation: newEmployee.emergencyContactRelation,
           emergencyContactPhone: newEmployee.emergencyContactPhone,
+          emergencyContactFillLater: newEmployee.emergencyContactFillLater === true,
           dateOfJoined: newEmployee.dateOfJoined,
           dateOfConfirmation: newEmployee.dateOfConfirmation || '',
+          probationDurationMonths: newEmployee.probationDurationMonths || '',
+          probationExtend: newEmployee.probationExtend === true,
+          probationExtensionMonths: newEmployee.probationExtensionMonths || '',
           dateOfTermination: newEmployee.dateOfTermination || '',
           allowanceGeneral: newEmployee.allowanceGeneral || 0,
           allowanceTransport: newEmployee.allowanceTransport !== undefined ? newEmployee.allowanceTransport : newEmployee.transportAllowance || 0,
@@ -1682,9 +1701,11 @@ export default function App() {
         if (updates.nricPassport !== undefined) payloadUpdates.nricPassport = updates.nricPassport;
         if (updates.nationality !== undefined) payloadUpdates.nationality = updates.nationality;
         if (updates.contactNumber !== undefined) payloadUpdates.contactNumber = updates.contactNumber;
+        if (updates.contactNumberFillLater !== undefined) payloadUpdates.contactNumberFillLater = updates.contactNumberFillLater;
         if (updates.taxNumber !== undefined) payloadUpdates.taxNumber = updates.taxNumber;
         if (updates.epfNumber !== undefined) payloadUpdates.epfNumber = updates.epfNumber;
         if (updates.socsoNumber !== undefined) payloadUpdates.socsoNumber = updates.socsoNumber;
+        if (updates.emailFillLater !== undefined) payloadUpdates.emailFillLater = updates.emailFillLater;
         if (updates.employmentType !== undefined) payloadUpdates.employmentType = updates.employmentType;
         if (updates.maritalStatus !== undefined) payloadUpdates.maritalStatus = updates.maritalStatus;
         if (updates.eligibleForStatutory !== undefined) payloadUpdates.eligibleForStatutory = updates.eligibleForStatutory;
@@ -1693,8 +1714,12 @@ export default function App() {
         if (updates.emergencyContactName !== undefined) payloadUpdates.emergencyContactName = updates.emergencyContactName;
         if (updates.emergencyContactRelation !== undefined) payloadUpdates.emergencyContactRelation = updates.emergencyContactRelation;
         if (updates.emergencyContactPhone !== undefined) payloadUpdates.emergencyContactPhone = updates.emergencyContactPhone;
+        if (updates.emergencyContactFillLater !== undefined) payloadUpdates.emergencyContactFillLater = updates.emergencyContactFillLater;
         if (updates.dateOfJoined !== undefined) payloadUpdates.dateOfJoined = updates.dateOfJoined;
         if (updates.dateOfConfirmation !== undefined) payloadUpdates.dateOfConfirmation = updates.dateOfConfirmation;
+        if (updates.probationDurationMonths !== undefined) payloadUpdates.probationDurationMonths = updates.probationDurationMonths;
+        if (updates.probationExtend !== undefined) payloadUpdates.probationExtend = updates.probationExtend;
+        if (updates.probationExtensionMonths !== undefined) payloadUpdates.probationExtensionMonths = updates.probationExtensionMonths;
         if (updates.dateOfTermination !== undefined) payloadUpdates.dateOfTermination = updates.dateOfTermination;
         if (updates.housingAllowance !== undefined) payloadUpdates.housingAllowance = updates.housingAllowance;
         if (updates.transportAllowance !== undefined) payloadUpdates.transportAllowance = updates.transportAllowance;

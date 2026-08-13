@@ -91,6 +91,8 @@ import {
 
 const EMPLOYEE_STATUS_OPTIONS: Exclude<Employee['status'], 'On Leave'>[] = [
   'Active',
+  'Active - Probation',
+  'Active - Confirmation',
   'Resigned',
   'Terminated',
   'Suspended'
@@ -100,6 +102,29 @@ const isSeparationStatus = (status: Employee['status']) =>
   status === 'Resigned' || status === 'Terminated';
 
 const toUppercase = (value: string) => value.toUpperCase();
+
+const getConfirmationDate = (
+  joinedDate: string,
+  probationMonths: number,
+  extensionMonths = 0
+) => {
+  if (!joinedDate || !probationMonths) return '';
+  const [year, month, day] = joinedDate.split('-').map(Number);
+  if (!year || !month || !day) return '';
+
+  const date = new Date(year, month - 1, 1);
+  date.setMonth(date.getMonth() + probationMonths + extensionMonths);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(day, lastDay));
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
+};
+
+const getPendingEmployeeEmail = () =>
+  `pending-${Date.now()}-${Math.floor(Math.random() * 1000)}@ysydhrsystem.local`;
 
 type AddEmployeeAllowanceKey =
   | 'allowanceGeneral'
@@ -167,6 +192,8 @@ const getActiveEmployeeAllowanceTypes = (employee: Employee) =>
 const getEmployeeStatusClasses = (status: Employee['status']) => {
   switch (status) {
     case 'Active':
+    case 'Active - Probation':
+    case 'Active - Confirmation':
       return {
         badge: 'bg-green-100 text-green-700',
         dot: 'bg-green-600'
@@ -324,8 +351,11 @@ export default function EmployeeDirectoryView({
   const [formNricPassport, setFormNricPassport] = useState('');
   const [formNationality, setFormNationality] = useState('Malaysian');
   const [formContactNumber, setFormContactNumber] = useState('');
+  const [formContactNumberFillLater, setFormContactNumberFillLater] = useState(false);
   const [formTaxNumber, setFormTaxNumber] = useState('');
   const [formEpfNumber, setFormEpfNumber] = useState('');
+  const [formSocsoNumber, setFormSocsoNumber] = useState('');
+  const [formEmailFillLater, setFormEmailFillLater] = useState(false);
   const [formEmploymentType, setFormEmploymentType] = useState<Employee['employmentType']>('Confirmation');
   const [formEligibleForStatutory, setFormEligibleForStatutory] = useState<'Yes' | 'No'>('Yes');
   const [formContractStatutoryTreatment, setFormContractStatutoryTreatment] = useState<NonNullable<Employee['contractStatutoryTreatment']>>('without_statutory');
@@ -338,8 +368,13 @@ export default function EmployeeDirectoryView({
   const [formEmergencyContactName, setFormEmergencyContactName] = useState('');
   const [formEmergencyContactRelation, setFormEmergencyContactRelation] = useState('');
   const [formEmergencyContactPhone, setFormEmergencyContactPhone] = useState('');
+  const [formEmergencyContactFillLater, setFormEmergencyContactFillLater] = useState(false);
   const [formDateOfJoined, setFormDateOfJoined] = useState(getGmt8DateString());
   const [formDateOfConfirmation, setFormDateOfConfirmation] = useState('');
+  const [formConfirmationDateAuto, setFormConfirmationDateAuto] = useState(true);
+  const [formProbationDurationMonths, setFormProbationDurationMonths] = useState(3);
+  const [formProbationExtend, setFormProbationExtend] = useState(false);
+  const [formProbationExtensionMonths, setFormProbationExtensionMonths] = useState(1);
 
   // Spouse details form states
   const [formSpouseName, setFormSpouseName] = useState('');
@@ -383,20 +418,27 @@ export default function EmployeeDirectoryView({
   const [editNricPassport, setEditNricPassport] = useState('');
   const [editNationality, setEditNationality] = useState('');
   const [editContactNumber, setEditContactNumber] = useState('');
+  const [editContactNumberFillLater, setEditContactNumberFillLater] = useState(false);
   const [editTaxNumber, setEditTaxNumber] = useState('');
   const [editEpfNumber, setEditEpfNumber] = useState('');
   const [editSocsoNumber, setEditSocsoNumber] = useState('');
   const [isEditSocsoNumberAutoFilled, setIsEditSocsoNumberAutoFilled] = useState(true);
+  const [editEmailFillLater, setEditEmailFillLater] = useState(false);
   const [editEmploymentType, setEditEmploymentType] = useState('');
   const [editContractStatutoryTreatment, setEditContractStatutoryTreatment] = useState<NonNullable<Employee['contractStatutoryTreatment']>>('without_statutory');
   const [editDateOfJoined, setEditDateOfJoined] = useState('');
   const [editDateOfConfirmation, setEditDateOfConfirmation] = useState('');
+  const [editConfirmationDateAuto, setEditConfirmationDateAuto] = useState(false);
   const [editEpfRateEmployee, setEditEpfRateEmployee] = useState(11);
   const [editEpfRateEmployer, setEditEpfRateEmployer] = useState(13);
   const [editEmergencyContactName, setEditEmergencyContactName] = useState('');
   const [editEmergencyContactRelation, setEditEmergencyContactRelation] = useState('');
   const [editEmergencyContactPhone, setEditEmergencyContactPhone] = useState('');
+  const [editEmergencyContactFillLater, setEditEmergencyContactFillLater] = useState(false);
   const [editEntityId, setEditEntityId] = useState('');
+  const [editProbationDurationMonths, setEditProbationDurationMonths] = useState(3);
+  const [editProbationExtend, setEditProbationExtend] = useState(false);
+  const [editProbationExtensionMonths, setEditProbationExtensionMonths] = useState(1);
 
   const getEditAllowanceAmount = (type: AddEmployeeAllowanceKey) => {
     switch (type) {
@@ -493,8 +535,10 @@ export default function EmployeeDirectoryView({
     setEditNricPassport(formatNricOrPassport(selectedEmployee.nricPassport || ''));
     setEditNationality(toUppercase(selectedEmployee.nationality || ''));
     setEditContactNumber(selectedEmployee.contactNumber || '');
+    setEditContactNumberFillLater(!!selectedEmployee.contactNumberFillLater);
     setEditTaxNumber(toUppercase(selectedEmployee.taxNumber || ''));
     setEditEpfNumber(toUppercase(selectedEmployee.epfNumber || ''));
+    setEditEmailFillLater(!!selectedEmployee.emailFillLater);
     const compactNric = formatNricOrPassport(selectedEmployee.nricPassport || '').replace(/-/g, '');
     setEditSocsoNumber(
       selectedEmployee.socsoNumber
@@ -511,6 +555,10 @@ export default function EmployeeDirectoryView({
     );
     setEditDateOfJoined(selectedEmployee.dateOfJoined || '');
     setEditDateOfConfirmation(selectedEmployee.dateOfConfirmation || '');
+    setEditConfirmationDateAuto(!selectedEmployee.dateOfConfirmation);
+    setEditProbationDurationMonths(selectedEmployee.probationDurationMonths || 3);
+    setEditProbationExtend(!!selectedEmployee.probationExtend);
+    setEditProbationExtensionMonths(selectedEmployee.probationExtensionMonths || 1);
     setEditEpfRateEmployee(selectedEmployee.epfRateEmployee !== undefined ? selectedEmployee.epfRateEmployee : 11);
     setEditEpfRateEmployer(selectedEmployee.epfRateEmployer !== undefined ? selectedEmployee.epfRateEmployer : 13);
     setEditOptInEpf(selectedEmployee.optInEpf !== false);
@@ -521,6 +569,7 @@ export default function EmployeeDirectoryView({
     setEditEmergencyContactName(toUppercase(selectedEmployee.emergencyContactName || ''));
     setEditEmergencyContactRelation(toUppercase(selectedEmployee.emergencyContactRelation || ''));
     setEditEmergencyContactPhone(toUppercase(selectedEmployee.emergencyContactPhone || ''));
+    setEditEmergencyContactFillLater(!!selectedEmployee.emergencyContactFillLater);
     setEditEntityId(selectedEmployee.entityId || entities[0]?.id || '');
     setIsEditingGeneralInfo(true);
   };
@@ -534,6 +583,14 @@ export default function EmployeeDirectoryView({
       employmentType: editEmploymentType as Employee['employmentType'],
       contractStatutoryTreatment: contractTreatment
     });
+    const savedEmail = editEmailFillLater
+      ? (selectedEmployee.email.includes('@ysydhrsystem.local')
+        ? selectedEmployee.email
+        : getPendingEmployeeEmail())
+      : editEmail.trim();
+    const savedDateOfConfirmation = isEditProbationStatus || isEditConfirmationStatus
+      ? editDateOfConfirmation
+      : '';
     const currentEffectiveStatus = getEffectiveEmploymentStatusForDate(selectedEmployee, todayIsoDate);
     const currentProfile = getEffectiveProfileForDate(selectedEmployee, todayIsoDate);
     const statusProfile: EmployeeTaxProfile = {
@@ -577,7 +634,7 @@ export default function EmployeeDirectoryView({
 
     const updates: Partial<Employee> = {
       name: editName,
-      email: editEmail,
+      email: savedEmail,
       designation: editDesignation,
       department: editDepartment,
       status: editStatus,
@@ -594,7 +651,8 @@ export default function EmployeeDirectoryView({
       allowancePhone: Number(editAllowancePhone),
       nricPassport: editNricPassport,
       nationality: editNationality,
-      contactNumber: editContactNumber,
+      contactNumber: editContactNumberFillLater ? '' : editContactNumber,
+      contactNumberFillLater: editContactNumberFillLater,
       taxNumber: editTaxNumber,
       epfNumber: editEpfNumber,
       socsoNumber: editSocsoNumber.replace(/-/g, ''),
@@ -602,7 +660,12 @@ export default function EmployeeDirectoryView({
       eligibleForStatutory: updatedDocumentProfile.statutoryEnabled ? 'Yes' : 'No',
       contractStatutoryTreatment: contractTreatment,
       dateOfJoined: editDateOfJoined,
-      dateOfConfirmation: editEmploymentType === 'Confirmation' ? editDateOfConfirmation : '',
+      dateOfConfirmation: savedDateOfConfirmation,
+      probationDurationMonths: isEditProbationStatus ? Number(editProbationDurationMonths) : undefined,
+      probationExtend: isEditProbationStatus ? editProbationExtend : false,
+      probationExtensionMonths: isEditProbationStatus && editProbationExtend
+        ? Number(editProbationExtensionMonths)
+        : 0,
       epfRateEmployee: Number(editEpfRateEmployee),
       epfRateEmployer: Number(editEpfRateEmployer),
       optInEpf: updatedDocumentProfile.statutoryEnabled ? editOptInEpf : false,
@@ -610,9 +673,11 @@ export default function EmployeeDirectoryView({
       optInEis: updatedDocumentProfile.statutoryEnabled ? editOptInEis : false,
       optInPcb: updatedDocumentProfile.statutoryEnabled ? editOptInPcb : false,
       enableLindung24: updatedDocumentProfile.statutoryEnabled ? editEnableLindung24 : false,
-      emergencyContactName: editEmergencyContactName,
-      emergencyContactRelation: editEmergencyContactRelation,
-      emergencyContactPhone: editEmergencyContactPhone,
+      emailFillLater: editEmailFillLater,
+      emergencyContactName: editEmergencyContactFillLater ? '' : editEmergencyContactName,
+      emergencyContactRelation: editEmergencyContactFillLater ? '' : editEmergencyContactRelation,
+      emergencyContactPhone: editEmergencyContactFillLater ? '' : editEmergencyContactPhone,
+      emergencyContactFillLater: editEmergencyContactFillLater,
       entityId: editEntityId,
       careerHistory: updatedCareerHistory,
       effectiveDatedProfiles,
@@ -889,6 +954,51 @@ export default function EmployeeDirectoryView({
       : undefined
   });
 
+  const isFormProbationStatus =
+    formStatus === 'Active - Probation' || formEmploymentType === 'Probation';
+  const isFormConfirmationStatus =
+    formStatus === 'Active - Confirmation' || formEmploymentType === 'Confirmation';
+  const isEditProbationStatus =
+    editStatus === 'Active - Probation' || editEmploymentType === 'Probation';
+  const isEditConfirmationStatus =
+    editStatus === 'Active - Confirmation' || editEmploymentType === 'Confirmation';
+
+  useEffect(() => {
+    if (!isFormProbationStatus || !formConfirmationDateAuto) return;
+    setFormDateOfConfirmation(
+      getConfirmationDate(
+        formDateOfJoined,
+        Number(formProbationDurationMonths),
+        formProbationExtend ? Number(formProbationExtensionMonths) : 0
+      )
+    );
+  }, [
+    formDateOfJoined,
+    formProbationDurationMonths,
+    formProbationExtend,
+    formProbationExtensionMonths,
+    formConfirmationDateAuto,
+    isFormProbationStatus
+  ]);
+
+  useEffect(() => {
+    if (!isEditProbationStatus || !editConfirmationDateAuto) return;
+    setEditDateOfConfirmation(
+      getConfirmationDate(
+        editDateOfJoined,
+        Number(editProbationDurationMonths),
+        editProbationExtend ? Number(editProbationExtensionMonths) : 0
+      )
+    );
+  }, [
+    editDateOfJoined,
+    editProbationDurationMonths,
+    editProbationExtend,
+    editProbationExtensionMonths,
+    editConfirmationDateAuto,
+    isEditProbationStatus
+  ]);
+
   // Sync with selectedEmployee changes
   useEffect(() => {
     if (selectedEmployee) {
@@ -952,7 +1062,13 @@ export default function EmployeeDirectoryView({
   const filteredEmployees = employees.filter(emp => {
     const matchesDept = deptFilter === 'All Departments' || emp.department === deptFilter;
     const displayedStatus = getEffectiveEmploymentStatusForDate(emp, todayIsoDate);
-    const matchesStatus = statusFilter === 'All Statuses' || displayedStatus === statusFilter;
+    const matchesStatus =
+      statusFilter === 'All Statuses' ||
+      (statusFilter === 'Active'
+        ? displayedStatus === 'Active' ||
+          displayedStatus === 'Active - Probation' ||
+          displayedStatus === 'Active - Confirmation'
+        : displayedStatus === statusFilter);
     const matchesEntity = entityFilter === 'All Subsidiaries' || emp.entityId === entityFilter;
     const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           emp.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -978,8 +1094,11 @@ export default function EmployeeDirectoryView({
     setFormNricPassport('');
     setFormNationality('MALAYSIAN');
     setFormContactNumber('');
+    setFormContactNumberFillLater(false);
     setFormTaxNumber('');
     setFormEpfNumber('');
+    setFormSocsoNumber('');
+    setFormEmailFillLater(false);
     setFormEmploymentType('Permanent');
     setFormContractStatutoryTreatment('without_statutory');
     setFormEligibleForStatutory('Yes');
@@ -987,7 +1106,13 @@ export default function EmployeeDirectoryView({
     setFormEmergencyContactName('');
     setFormEmergencyContactRelation('');
     setFormEmergencyContactPhone('');
+    setFormEmergencyContactFillLater(false);
     setFormDateOfJoined(getGmt8DateString());
+    setFormDateOfConfirmation('');
+    setFormConfirmationDateAuto(true);
+    setFormProbationDurationMonths(3);
+    setFormProbationExtend(false);
+    setFormProbationExtensionMonths(1);
 
     // Reset spouse/dependant form states
     setFormSpouseName('');
@@ -1164,8 +1289,15 @@ export default function EmployeeDirectoryView({
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName || !formEmail || !formDesignation || !formBank.trim() || !formAccount || !formNricPassport) {
-      onShowNotification('Form Error', 'Please fill in all required corporate, banking, and NRIC/Passport fields.');
+    if (
+      !formName ||
+      (!formEmailFillLater && !formEmail) ||
+      !formDesignation ||
+      !formBank.trim() ||
+      !formAccount ||
+      !formNricPassport
+    ) {
+      onShowNotification('Form Error', 'Please fill in all required name, banking, and NRIC/Passport fields.');
       return;
     }
 
@@ -1223,12 +1355,16 @@ export default function EmployeeDirectoryView({
     const allowanceMeal = getAllowanceAmount(formAllowances, 'allowanceMeal');
     const allowanceAccommodation = getAllowanceAmount(formAllowances, 'allowanceAccommodation');
     const allowancePhone = getAllowanceAmount(formAllowances, 'allowancePhone');
+    const savedEmail = formEmailFillLater ? getPendingEmployeeEmail() : formEmail.trim();
+    const savedDateOfConfirmation = isFormProbationStatus || isFormConfirmationStatus
+      ? formDateOfConfirmation
+      : '';
 
     const newEmp: Employee = {
-      id: formEmail,
+      id: savedEmail,
       entityId: formEntityId || activeEntityId || entities[0]?.id || '',
       name: toUppercase(formName),
-      email: formEmail,
+      email: savedEmail,
       designation: formDesignation,
       department: formDepartment,
       status: formStatus,
@@ -1261,10 +1397,12 @@ export default function EmployeeDirectoryView({
       // New fields mapping
       nricPassport: formatNricOrPassport(formNricPassport),
       nationality: toUppercase(formNationality),
-      contactNumber: formContactNumber,
+      contactNumber: formContactNumberFillLater ? '' : formContactNumber,
+      contactNumberFillLater: formContactNumberFillLater,
       taxNumber: toUppercase(formTaxNumber || `TX-${Math.floor(100000000 + Math.random() * 900000000)}`),
       epfNumber: toUppercase(formEpfNumber || `EP-${Math.floor(100000000 + Math.random() * 900000000)}`),
-      socsoNumber: formatNricOrPassport(formNricPassport).replace(/-/g, ''),
+      socsoNumber: formSocsoNumber.replace(/-/g, '') || formatNricOrPassport(formNricPassport).replace(/-/g, ''),
+      emailFillLater: formEmailFillLater,
       employmentType: formEmploymentType,
       maritalStatus: formMaritalStatus,
       eligibleForStatutory: newEmployeeDocumentProfile.statutoryEnabled ? 'Yes' : 'No',
@@ -1274,11 +1412,17 @@ export default function EmployeeDirectoryView({
       optInEis: newEmployeeDocumentProfile.statutoryEnabled ? formOptInEis : false,
       optInPcb: newEmployeeDocumentProfile.statutoryEnabled ? formOptInPcb : false,
       enableLindung24: newEmployeeDocumentProfile.statutoryEnabled ? formEnableLindung24 : false,
-      emergencyContactName: toUppercase(formEmergencyContactName || 'N/A'),
-      emergencyContactRelation: toUppercase(formEmergencyContactRelation || 'Spouse'),
-      emergencyContactPhone: toUppercase(formEmergencyContactPhone || 'N/A'),
+      emergencyContactName: formEmergencyContactFillLater ? '' : toUppercase(formEmergencyContactName),
+      emergencyContactRelation: formEmergencyContactFillLater ? '' : toUppercase(formEmergencyContactRelation),
+      emergencyContactPhone: formEmergencyContactFillLater ? '' : toUppercase(formEmergencyContactPhone),
+      emergencyContactFillLater: formEmergencyContactFillLater,
       dateOfJoined: formDateOfJoined,
-      dateOfConfirmation: formEmploymentType === 'Confirmation' ? formDateOfConfirmation : '',
+      dateOfConfirmation: savedDateOfConfirmation,
+      probationDurationMonths: isFormProbationStatus ? Number(formProbationDurationMonths) : undefined,
+      probationExtend: isFormProbationStatus ? formProbationExtend : false,
+      probationExtensionMonths: isFormProbationStatus && formProbationExtend
+        ? Number(formProbationExtensionMonths)
+        : 0,
       
       ...spouseAndDependantFields,
       
@@ -1303,7 +1447,7 @@ export default function EmployeeDirectoryView({
           'Employee Registered',
           `${formName} has been onboarded into Workforce records.`
         );
-        if (formCreateAccount && canManageAccountActions) {
+        if (formCreateAccount && canManageAccountActions && !formEmailFillLater) {
           try {
             const accountResult = await runEmployeeAccountAction(newEmp, 'provision', 'email');
             saveAccountSummary(accountResult.account);
@@ -2677,6 +2821,8 @@ export default function EmployeeDirectoryView({
                 >
                   <option>All Statuses</option>
                   <option>Active</option>
+                  <option>Active - Probation</option>
+                  <option>Active - Confirmation</option>
                   <option>Resigned</option>
                   <option>Terminated</option>
                   <option>Suspended</option>
@@ -3118,7 +3264,10 @@ export default function EmployeeDirectoryView({
                         </div>
                       </div>
 
-                      {selectedEmployee.employmentType === 'Confirmation' && (
+                      {(selectedEmployee.status === 'Active - Probation' ||
+                        selectedEmployee.status === 'Active - Confirmation' ||
+                        selectedEmployee.employmentType === 'Confirmation' ||
+                        selectedEmployee.employmentType === 'Probation') && (
                         <div className="p-3 bg-surface-container-low rounded border border-neutral-border">
                           <div className="text-on-surface-variant font-bold text-[10px] uppercase tracking-wider mb-0.5">Date of Confirmation</div>
                           <div className="font-mono text-sm font-semibold text-on-surface flex items-center gap-1.5">
@@ -3226,10 +3375,24 @@ export default function EmployeeDirectoryView({
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Email Address</label>
                           <input
                             type="email"
-                            value={editEmail}
+                            disabled={editEmailFillLater}
+                            value={editEmailFillLater ? '' : editEmail}
                             onChange={(e) => setEditEmail(e.target.value)}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs disabled:bg-neutral-100"
                           />
+                          <label className="mt-1.5 flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editEmailFillLater}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setEditEmailFillLater(checked);
+                                if (checked) setEditEmail('');
+                              }}
+                              className="h-3.5 w-3.5 rounded accent-primary"
+                            />
+                            Fill up later
+                          </label>
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Role / Designation</label>
@@ -3319,10 +3482,24 @@ export default function EmployeeDirectoryView({
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Contact Number</label>
                           <input
                             type="text"
-                            value={editContactNumber}
+                            disabled={editContactNumberFillLater}
+                            value={editContactNumberFillLater ? '' : editContactNumber}
                             onChange={(e) => setEditContactNumber(e.target.value)}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs disabled:bg-neutral-100"
                           />
+                          <label className="mt-1.5 flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editContactNumberFillLater}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setEditContactNumberFillLater(checked);
+                                if (checked) setEditContactNumber('');
+                              }}
+                              className="h-3.5 w-3.5 rounded accent-primary"
+                            />
+                            Fill up later
+                          </label>
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Employment Type</label>
@@ -3331,8 +3508,9 @@ export default function EmployeeDirectoryView({
                             onChange={(e) => setEditEmploymentType(e.target.value)}
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           >
-	                            <option value="Internship">Internship</option>
-	                            <option value="Probation">Probation</option>
+                            <option value="Internship">Internship</option>
+                            <option value="Probation">Probation</option>
+                            <option value="Confirmation">Confirmation</option>
 	                            <option value="Permanent">Permanent</option>
 	                            <option value="Contract">Contract</option>
 	                            <option value="Fixed Term Contract">Fixed Term Contract</option>
@@ -3376,7 +3554,63 @@ export default function EmployeeDirectoryView({
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           />
                         </div>
-                        {editEmploymentType === 'Confirmation' && (
+                        {isEditProbationStatus && (
+                          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded border border-primary/25 bg-primary/5 p-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-primary uppercase mb-1">Duration of Probation (Months)</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={editProbationDurationMonths}
+                                onChange={(e) => {
+                                  setEditProbationDurationMonths(Number(e.target.value));
+                                  setEditConfirmationDateAuto(true);
+                                }}
+                                className="w-full bg-white border border-primary/30 rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-primary uppercase mb-1">Date of Confirmation</label>
+                              <input
+                                type="date"
+                                value={editDateOfConfirmation}
+                                onChange={(e) => {
+                                  setEditDateOfConfirmation(e.target.value);
+                                  setEditConfirmationDateAuto(false);
+                                }}
+                                className="w-full bg-white border border-primary/30 rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                              />
+                            </div>
+                            <div className="flex flex-col justify-end gap-2">
+                              <label className="flex items-center gap-2 text-[11px] font-semibold text-primary cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editProbationExtend}
+                                  onChange={(e) => {
+                                    setEditProbationExtend(e.target.checked);
+                                    setEditConfirmationDateAuto(true);
+                                  }}
+                                  className="h-3.5 w-3.5 rounded accent-primary"
+                                />
+                                Probation Extend
+                              </label>
+                              {editProbationExtend && (
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={editProbationExtensionMonths}
+                                  onChange={(e) => {
+                                    setEditProbationExtensionMonths(Number(e.target.value));
+                                    setEditConfirmationDateAuto(true);
+                                  }}
+                                  placeholder="Additional months"
+                                  className="w-full bg-white border border-primary/30 rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {isEditConfirmationStatus && !isEditProbationStatus && (
                           <div>
                             <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Date of Confirmation</label>
                             <input
@@ -3540,30 +3774,50 @@ export default function EmployeeDirectoryView({
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Person Name</label>
                           <input
                             type="text"
-                            value={editEmergencyContactName}
+                            disabled={editEmergencyContactFillLater}
+                            value={editEmergencyContactFillLater ? '' : editEmergencyContactName}
                             onChange={(e) => setEditEmergencyContactName(toUppercase(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs disabled:bg-neutral-100"
                           />
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Relationship</label>
                           <input
                             type="text"
-                            value={editEmergencyContactRelation}
+                            disabled={editEmergencyContactFillLater}
+                            value={editEmergencyContactFillLater ? '' : editEmergencyContactRelation}
                             onChange={(e) => setEditEmergencyContactRelation(toUppercase(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs disabled:bg-neutral-100"
                           />
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Phone Number</label>
                           <input
                             type="text"
-                            value={editEmergencyContactPhone}
+                            disabled={editEmergencyContactFillLater}
+                            value={editEmergencyContactFillLater ? '' : editEmergencyContactPhone}
                             onChange={(e) => setEditEmergencyContactPhone(toUppercase(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
+                            className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs disabled:bg-neutral-100"
                           />
                         </div>
                       </div>
+                      <label className="flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editEmergencyContactFillLater}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setEditEmergencyContactFillLater(checked);
+                            if (checked) {
+                              setEditEmergencyContactName('');
+                              setEditEmergencyContactRelation('');
+                              setEditEmergencyContactPhone('');
+                            }
+                          }}
+                          className="h-3.5 w-3.5 rounded accent-primary"
+                        />
+                        Fill up later
+                      </label>
                     </div>
                   </div>
                 )}
@@ -4410,7 +4664,12 @@ export default function EmployeeDirectoryView({
                     <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">NRIC / Passport Number *</label>
                     <input 
                       type="text" required
-                      value={formNricPassport} onChange={(e) => setFormNricPassport(formatNricOrPassport(e.target.value))}
+                      value={formNricPassport}
+                      onChange={(e) => {
+                        const nextNric = formatNricOrPassport(e.target.value);
+                        setFormNricPassport(nextNric);
+                        setFormSocsoNumber(nextNric.replace(/-/g, ''));
+                      }}
                       placeholder="950124-14-5226 / Passport ID"
                       className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                     />
@@ -4428,13 +4687,28 @@ export default function EmployeeDirectoryView({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Contact Number *</label>
-                    <input 
-                      type="text" required
-                      value={formContactNumber} onChange={(e) => setFormContactNumber(e.target.value)}
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Contact Number</label>
+                    <input
+                      type="text"
+                      disabled={formContactNumberFillLater}
+                      value={formContactNumberFillLater ? '' : formContactNumber}
+                      onChange={(e) => setFormContactNumber(e.target.value)}
                       placeholder="+60 12-345 6789"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none disabled:bg-neutral-100"
                     />
+                    <label className="mt-1.5 flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formContactNumberFillLater}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormContactNumberFillLater(checked);
+                          if (checked) setFormContactNumber('');
+                        }}
+                        className="h-3.5 w-3.5 rounded accent-primary"
+                      />
+                      Fill up later
+                    </label>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Marital Status</label>
@@ -4614,39 +4888,36 @@ export default function EmployeeDirectoryView({
                   </div>
                 )}
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Corporate Email Address</label>
+                    <input
+                      type="email"
+                      disabled={formEmailFillLater}
+                      value={formEmailFillLater ? '' : formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      placeholder="j.cooper@enterprise.com"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none disabled:bg-neutral-100"
+                    />
+                    <label className="mt-1.5 flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formEmailFillLater}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormEmailFillLater(checked);
+                          if (checked) setFormEmail('');
+                        }}
+                        className="h-3.5 w-3.5 rounded accent-primary"
+                      />
+                      Fill up later
+                    </label>
+                  </div>
+                </div>
+
                 {/* SECTION 2: Corporate & Contract Mapping */}
                 <div className="border-b border-neutral-border pb-2 pt-2">
                   <span className="text-xs font-bold text-primary uppercase tracking-wider block">2. CORPORATE REGISTRY</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Corporate Email Address *</label>
-                    <input 
-                      type="email" required
-                      value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
-                      placeholder="j.cooper@enterprise.com"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Tax PCB Income Number</label>
-                    <input 
-                      type="text"
-                      value={formTaxNumber} onChange={(e) => setFormTaxNumber(toUppercase(e.target.value))}
-                      placeholder="SG 29481729010 (or auto-gen)"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">EPF Member Number</label>
-                    <input 
-                      type="text"
-                      value={formEpfNumber} onChange={(e) => setFormEpfNumber(toUppercase(e.target.value))}
-                      placeholder="EP-29481729010 (or auto-gen)"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
-                    />
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -4685,7 +4956,7 @@ export default function EmployeeDirectoryView({
                   </div>
                 </div>
 
-                <div className={`grid grid-cols-1 ${formEmploymentType === 'Confirmation' ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-4`}>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Type of Employment</label>
                     <select
@@ -4694,6 +4965,7 @@ export default function EmployeeDirectoryView({
                     >
 	                      <option value="Internship">Internship</option>
 	                      <option value="Probation">Probation</option>
+	                      <option value="Confirmation">Confirmation</option>
 	                      <option value="Permanent">Permanent</option>
 	                      <option value="Contract">Contract</option>
 	                      <option value="Fixed Term Contract">Fixed Term Contract</option>
@@ -4709,16 +4981,6 @@ export default function EmployeeDirectoryView({
                       className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                     />
                   </div>
-                  {formEmploymentType === 'Confirmation' && (
-                    <div>
-                      <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Date of Confirmation</label>
-                      <input 
-                        type="date"
-                        value={formDateOfConfirmation} onChange={(e) => setFormDateOfConfirmation(e.target.value)}
-                        className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
-                      />
-                    </div>
-                  )}
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Initial Status</label>
                     <select
@@ -4731,6 +4993,75 @@ export default function EmployeeDirectoryView({
                     </select>
 	                  </div>
 	                </div>
+
+                {isFormProbationStatus && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-md border border-primary/25 bg-primary/5 p-3">
+                    <div>
+                      <label className="block text-xs font-bold text-primary uppercase mb-1">Duration of Probation (Months)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formProbationDurationMonths}
+                        onChange={(e) => {
+                          setFormProbationDurationMonths(Number(e.target.value));
+                          setFormConfirmationDateAuto(true);
+                        }}
+                        className="w-full bg-white border border-primary/30 rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-primary uppercase mb-1">Date of Confirmation</label>
+                      <input
+                        type="date"
+                        value={formDateOfConfirmation}
+                        onChange={(e) => {
+                          setFormDateOfConfirmation(e.target.value);
+                          setFormConfirmationDateAuto(false);
+                        }}
+                        className="w-full bg-white border border-primary/30 rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col justify-end gap-2">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-primary cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formProbationExtend}
+                          onChange={(e) => {
+                            setFormProbationExtend(e.target.checked);
+                            setFormConfirmationDateAuto(true);
+                          }}
+                          className="h-4 w-4 rounded accent-primary"
+                        />
+                        Probation Extend
+                      </label>
+                      {formProbationExtend && (
+                        <input
+                          type="number"
+                          min="1"
+                          value={formProbationExtensionMonths}
+                          onChange={(e) => {
+                            setFormProbationExtensionMonths(Number(e.target.value));
+                            setFormConfirmationDateAuto(true);
+                          }}
+                          placeholder="Additional months"
+                          className="w-full bg-white border border-primary/30 rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {isFormConfirmationStatus && !isFormProbationStatus && (
+                  <div className="max-w-xs">
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Date of Confirmation</label>
+                    <input
+                      type="date"
+                      value={formDateOfConfirmation}
+                      onChange={(e) => setFormDateOfConfirmation(e.target.value)}
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                    />
+                  </div>
+                )}
 
 	                {isContractEmploymentType(formEmploymentType) && (
 	                  <div className="p-3 bg-primary/5 border border-primary/25 rounded-md animate-in slide-in-from-top-1 duration-150">
@@ -4863,6 +5194,39 @@ export default function EmployeeDirectoryView({
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">TIN Number (Tax Number)</label>
+                    <input
+                      type="text"
+                      value={formTaxNumber}
+                      onChange={(e) => setFormTaxNumber(toUppercase(e.target.value))}
+                      placeholder="TIN number"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">KWSP Number (EPF)</label>
+                    <input
+                      type="text"
+                      value={formEpfNumber}
+                      onChange={(e) => setFormEpfNumber(toUppercase(e.target.value))}
+                      placeholder="KWSP number"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">SOCSO Number</label>
+                    <input
+                      type="text"
+                      value={formSocsoNumber}
+                      onChange={(e) => setFormSocsoNumber(e.target.value.replace(/-/g, ''))}
+                      placeholder="Auto-filled from NRIC"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4">
                   <div className="lg:max-w-[220px]">
                     <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Basic Salary *</label>
@@ -4945,33 +5309,56 @@ export default function EmployeeDirectoryView({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Emergency Name *</label>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Emergency Name</label>
                     <input 
-                      type="text" required
-                      value={formEmergencyContactName} onChange={(e) => setFormEmergencyContactName(toUppercase(e.target.value))}
+                      type="text"
+                      disabled={formEmergencyContactFillLater}
+                      value={formEmergencyContactFillLater ? '' : formEmergencyContactName}
+                      onChange={(e) => setFormEmergencyContactName(toUppercase(e.target.value))}
                       placeholder="Emma Jenkins"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none disabled:bg-neutral-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Relationship *</label>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Relationship</label>
                     <input 
-                      type="text" required
-                      value={formEmergencyContactRelation} onChange={(e) => setFormEmergencyContactRelation(toUppercase(e.target.value))}
+                      type="text"
+                      disabled={formEmergencyContactFillLater}
+                      value={formEmergencyContactFillLater ? '' : formEmergencyContactRelation}
+                      onChange={(e) => setFormEmergencyContactRelation(toUppercase(e.target.value))}
                       placeholder="e.g. Spouse / Mother"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none disabled:bg-neutral-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Emergency Phone *</label>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Emergency Phone</label>
                     <input 
-                      type="text" required
-                      value={formEmergencyContactPhone} onChange={(e) => setFormEmergencyContactPhone(toUppercase(e.target.value))}
+                      type="text"
+                      disabled={formEmergencyContactFillLater}
+                      value={formEmergencyContactFillLater ? '' : formEmergencyContactPhone}
+                      onChange={(e) => setFormEmergencyContactPhone(toUppercase(e.target.value))}
                       placeholder="+60 12-987 6543"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none disabled:bg-neutral-100"
                     />
                   </div>
                 </div>
+                <label className="flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formEmergencyContactFillLater}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormEmergencyContactFillLater(checked);
+                      if (checked) {
+                        setFormEmergencyContactName('');
+                        setFormEmergencyContactRelation('');
+                        setFormEmergencyContactPhone('');
+                      }
+                    }}
+                    className="h-3.5 w-3.5 rounded accent-primary"
+                  />
+                  Fill up later
+                </label>
 
                 <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 space-y-2">
                   <label className="flex items-start gap-3 cursor-pointer select-none">

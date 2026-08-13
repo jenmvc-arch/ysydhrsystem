@@ -110,7 +110,7 @@ export interface Employee {
   email: string;
   designation: string;
   department: string;
-  status: 'Active' | 'On Leave' | 'Resigned' | 'Terminated' | 'Suspended';
+  status: 'Active' | 'Active - Probation' | 'Active - Confirmation' | 'On Leave' | 'Resigned' | 'Terminated' | 'Suspended';
   bankName: string;
   accountNo: string;
   basicSalary: number;
@@ -171,9 +171,11 @@ export interface Employee {
   nricPassport: string;
   nationality: string;
   contactNumber?: string;
+  contactNumberFillLater?: boolean;
   taxNumber: string;
   epfNumber?: string;
   socsoNumber?: string;
+  emailFillLater?: boolean;
   employmentType:
     | 'Internship'
     | 'Probation'
@@ -197,8 +199,12 @@ export interface Employee {
   emergencyContactName: string;
   emergencyContactRelation: string;
   emergencyContactPhone: string;
+  emergencyContactFillLater?: boolean;
   dateOfJoined: string;
   dateOfConfirmation?: string;
+  probationDurationMonths?: number;
+  probationExtend?: boolean;
+  probationExtensionMonths?: number;
   dateOfTermination?: string;
   
   // Spouse Details

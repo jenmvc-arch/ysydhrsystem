@@ -20,6 +20,7 @@ import { Employee } from '../types';
 import EmployeeAvatar from './EmployeeAvatar';
 import { LeaveRequest } from './LeaveManagementView';
 import { formatToDDMMMYYYY } from '../lib/dateUtils';
+import { isCurrentActiveEmployee } from '../data';
 
 interface LeaveCalendarProps {
   requests: LeaveRequest[];
@@ -187,7 +188,7 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
           e.department === absentEmp.department && 
           e.id !== absentEmp.id && 
           !leaveEmployeeIds.has(e.id) &&
-          e.status === 'Active'
+          isCurrentActiveEmployee(e)
         );
         backupsByDept[absentEmp.department] = deptStaff;
       }
