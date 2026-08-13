@@ -404,6 +404,8 @@ export default function PayrollView({
               <tbody className="divide-y divide-neutral-border/50">
                 {records.map(record => {
                   const recordBreakdown = calculatePayslipFromRecord(activeEmployee, record);
+                  const savedNetPay = Number(record.netPay || 0);
+                  const hasSavedNetMismatch = savedNetPay > 0 && Math.abs(savedNetPay - recordBreakdown.netPay) > 0.01;
                   const recordAllowances = Number(record.allowanceGeneral || 0) +
                     Number(record.allowanceTransport || 0) +
                     Number(record.allowanceParking || 0) +
@@ -432,7 +434,14 @@ export default function PayrollView({
                       <td className="p-3 text-right font-mono text-on-surface-variant">{formatMoney(recordVariable)}</td>
                       <td className="p-3 text-right font-mono text-on-surface-variant">{formatMoney(record.epfEmployee)}</td>
                       <td className="p-3 text-right font-mono text-red-600">{formatMoney(record.actualPCBDeducted)}</td>
-                      <td className="p-3 text-right font-mono font-bold text-green-700">{formatMoney(recordBreakdown.netPay)}</td>
+                      <td className="p-3 text-right font-mono font-bold text-green-700">
+                        {formatMoney(recordBreakdown.netPay)}
+                        {hasSavedNetMismatch && (
+                          <span className="mt-1 block text-[10px] font-semibold text-amber-700">
+                            Saved net {formatMoney(savedNetPay)}
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3 text-center">
                         <button
                           type="button"
