@@ -71,7 +71,7 @@ export default function Sidebar({
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-inverse-surface text-inverse-on-surface py-6" style={{ viewTransitionName: 'sidebar-container' } as any}>
       {/* Brand Header with Corporate Selector */}
-      <div className="px-5 mb-6 flex flex-col items-center gap-3 bg-white/5 p-4 rounded-lg mx-3 border border-white/10" style={{ viewTransitionName: 'sidebar-brand' } as any}>
+      <div className="px-5 mb-6 flex flex-col items-center gap-3 bg-[#DEE3E7] p-4 rounded-lg mx-3 border border-white/10" style={{ viewTransitionName: 'sidebar-brand' } as any}>
         {/* Company Logo */}
         <div className="w-36 h-12 rounded flex items-center justify-center overflow-hidden shrink-0 relative" style={{ viewTransitionName: 'corporate-logo' } as any}>
           <img 

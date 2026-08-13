@@ -2353,7 +2353,7 @@ export default function App() {
             </button>
             {/* User Account context */}
             <div className="flex items-center gap-2.5 pl-2 border-l border-neutral-border/40">
-              <div className="w-8 h-8 rounded-full bg-primary text-on-primary-container font-bold text-xs flex items-center justify-center border border-neutral-border">
+              <div className="w-8 h-8 rounded-full bg-primary text-[#FFDDB3] font-bold text-xs flex items-center justify-center border border-neutral-border">
                 {currentUserName 
                   ? currentUserName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
                   : 'HR'}
