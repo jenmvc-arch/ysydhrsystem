@@ -41,6 +41,7 @@ import {
   getSeparatePayoutConfig,
   getSeparatePayoutDocumentProfile,
   isEmployeeEligibleForPayrollPeriod,
+  isSeparatePayrollRecord,
   type PayslipBreakdown,
   type YtdBreakdown
 } from '../data';
@@ -273,6 +274,81 @@ const getInitialDraft = (employee: Employee, month: number, year: number, payout
   };
 };
 
+const getMatchingPayrollRecord = (
+  records: PayrollRecord2026[],
+  employee: Employee,
+  month: number,
+  year: number,
+  payoutKind?: Exclude<PayrollPayoutKind, 'regular'> | null
+) => records
+  .filter(record => (
+    record?.employeeEmail?.toLowerCase() === employee.email.toLowerCase() &&
+    record.payrollMonth === month &&
+    record.payrollYear === year &&
+    (payoutKind
+      ? record.payoutKind === payoutKind && isSeparatePayrollRecord(record)
+      : !isSeparatePayrollRecord(record))
+  ))
+  .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))[0];
+
+const getDraftFromPayrollRecord = (
+  record: PayrollRecord2026,
+  employee: Employee,
+  month: number,
+  year: number,
+  payoutKind?: Exclude<PayrollPayoutKind, 'regular'> | null
+): MockupDraft => {
+  const fallbackDraft = getInitialDraft(employee, month, year, payoutKind);
+  const descriptions = {
+    ...DEFAULT_DESCRIPTION_OVERRIDES,
+    ...(record.deductionOthersDesc ? { deductionOthers: record.deductionOthersDesc } : {}),
+    ...(record.payslipDescriptions || {})
+  };
+
+  return {
+    ...fallbackDraft,
+    paymentDate: record.paymentDate || fallbackDraft.paymentDate,
+    basicSalary: Number(record.basicSalary ?? fallbackDraft.basicSalary),
+    allowanceGeneral: Number(record.allowanceGeneral ?? fallbackDraft.allowanceGeneral),
+    allowanceTransport: Number(record.allowanceTransport ?? fallbackDraft.allowanceTransport),
+    allowanceParking: Number(record.allowanceParking ?? fallbackDraft.allowanceParking),
+    allowanceMeal: Number(record.allowanceMeal ?? fallbackDraft.allowanceMeal),
+    allowanceAccommodation: Number(record.allowanceAccommodation ?? fallbackDraft.allowanceAccommodation),
+    allowancePhone: Number(record.allowancePhone ?? fallbackDraft.allowancePhone),
+    overtime: Number(record.overtime ?? fallbackDraft.overtime),
+    bonusAmount: Number(record.bonusAmount ?? fallbackDraft.bonusAmount),
+    bonusDesc: record.bonusDesc ?? fallbackDraft.bonusDesc,
+    commissionAmount: Number(record.commissionAmount ?? fallbackDraft.commissionAmount),
+    commissionDesc: record.commissionDesc ?? fallbackDraft.commissionDesc,
+    backPayAmount: Number(record.backPayAmount ?? fallbackDraft.backPayAmount),
+    backPayDesc: record.backPayDesc ?? fallbackDraft.backPayDesc,
+    awsAmount: Number(record.awsAmount ?? fallbackDraft.awsAmount),
+    awsDesc: record.awsDesc ?? fallbackDraft.awsDesc,
+    compensationAmount: Number(record.compensationAmount ?? fallbackDraft.compensationAmount),
+    compensationDesc: record.compensationDesc ?? fallbackDraft.compensationDesc,
+    reimbursementAmount: Number(record.reimbursementAmount ?? fallbackDraft.reimbursementAmount),
+    reimbursementDesc: record.reimbursementDesc ?? fallbackDraft.reimbursementDesc,
+    unpaidLeave: Number(record.unpaidLeave ?? fallbackDraft.unpaidLeave),
+    deductionInLieu: Number(record.deductionInLieu ?? fallbackDraft.deductionInLieu),
+    deductionCp38: Number(record.deductionCp38 ?? fallbackDraft.deductionCp38),
+    deductionOthers: Number(record.deductionOthers ?? fallbackDraft.deductionOthers),
+    deductionOthersDesc: record.deductionOthersDesc ?? fallbackDraft.deductionOthersDesc,
+    statutoryTreatment: record.statutoryTreatment || fallbackDraft.statutoryTreatment,
+    payoutDescription: record.payoutDescription || fallbackDraft.payoutDescription,
+    lineNotes: { ...(record.lineNotes || {}) },
+    descriptions,
+    epfEmployee: Number(record.epfEmployee ?? fallbackDraft.epfEmployee),
+    epfEmployer: Number(record.epfEmployer ?? fallbackDraft.epfEmployer),
+    socsoEmployee: Number(record.socsoEmployee ?? fallbackDraft.socsoEmployee),
+    socsoEmployer: Number(record.socsoEmployer ?? fallbackDraft.socsoEmployer),
+    lindung24Employee: Number(record.lindung24Employee ?? fallbackDraft.lindung24Employee),
+    eisEmployee: Number(record.eisEmployee ?? fallbackDraft.eisEmployee),
+    eisEmployer: Number(record.eisEmployer ?? fallbackDraft.eisEmployer),
+    taxPcb: Number(record.actualPCBDeducted ?? fallbackDraft.taxPcb),
+    hrdCorp: Number(record.hrdCorp ?? fallbackDraft.hrdCorp)
+  };
+};
+
 const getCalculationEmployee = (employee: Employee, draft: MockupDraft): Employee => ({
   ...employee,
   historicalPayrollRecords: [],
@@ -466,7 +542,17 @@ export default function PayrollEditorMockupView({
   }
 
   const draftKey = getDraftKey(rawActiveEmployee, payMonth, payYear, separatePayoutKind);
-  const currentDraft = demoDrafts[draftKey] || getInitialDraft(rawActiveEmployee, payMonth, payYear, separatePayoutKind);
+  const matchedPayrollRecord = getMatchingPayrollRecord(
+    payrollRecords2026,
+    rawActiveEmployee,
+    payMonth,
+    payYear,
+    separatePayoutKind
+  );
+  const savedRecordDraft = matchedPayrollRecord
+    ? getDraftFromPayrollRecord(matchedPayrollRecord, rawActiveEmployee, payMonth, payYear, separatePayoutKind)
+    : null;
+  const currentDraft = savedRecordDraft || demoDrafts[draftKey] || getInitialDraft(rawActiveEmployee, payMonth, payYear, separatePayoutKind);
   const activeDraft = editingDraft || currentDraft;
   const effectiveEmployee = getEmployeeForMonth(rawActiveEmployee, payMonth, payYear);
   const selectedPayoutAmount = getDraftPayoutAmount(activeDraft, separatePayoutKind);
@@ -617,10 +703,8 @@ export default function PayrollEditorMockupView({
   };
 
   const startEditing = () => {
-    const baselineStatutory = getDefaultStatutoryDraftValues(currentDraft, currentDraft.statutoryTreatment);
     setEditingDraft({
       ...currentDraft,
-      ...baselineStatutory,
       descriptions: { ...currentDraft.descriptions },
       lineNotes: { ...currentDraft.lineNotes }
     });
@@ -740,18 +824,16 @@ export default function PayrollEditorMockupView({
     if (!editingDraft) return;
     const recordToSave = buildPayrollRecord(editingDraft);
 
-    if (isSeparatePayoutMode && !onSavePayrollRecord) {
-      onShowNotification('Save Failed', 'Payroll save handler is not available for separate payout generation.');
-      return;
-    }
-
-    if (isSeparatePayoutMode && onSavePayrollRecord) {
+    if (onSavePayrollRecord) {
       try {
         await onSavePayrollRecord(recordToSave);
       } catch (error: any) {
-        onShowNotification('Save Failed', error?.message || 'Separate payout record could not be saved.');
+        onShowNotification('Save Failed', error?.message || 'Payroll record could not be saved.');
         return;
       }
+    } else if (isSeparatePayoutMode) {
+      onShowNotification('Save Failed', 'Payroll save handler is not available for separate payout generation.');
+      return;
     }
 
     setDemoDrafts(previous => ({ ...previous, [draftKey]: editingDraft }));
@@ -763,9 +845,7 @@ export default function PayrollEditorMockupView({
         ? `${recordToSave.payoutTitle || 'Separate payout'} was saved and generated for preview.`
         : `Your ${documentProfile.documentType.toLowerCase()} changes have been saved in the payroll editor session.`
     );
-    if (isSeparatePayoutMode) {
-      onGeneratedPayrollRecord?.(recordToSave);
-    }
+    onGeneratedPayrollRecord?.(recordToSave);
   };
 
   const cancelEditing = () => {

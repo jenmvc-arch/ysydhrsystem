@@ -15,7 +15,8 @@ import {
   getPayrollDocumentProfile,
   getPayrollDocumentProfileForRecord,
   getSeparatePayoutConfig,
-  isEmployeeEligibleForPayrollPeriod
+  isEmployeeEligibleForPayrollPeriod,
+  isSeparatePayrollRecord
 } from '../data';
 import PayslipDocumentView from './PayslipDocumentView';
 import PayrollEditorMockupView from './PayrollEditorMockupView';
@@ -101,6 +102,16 @@ export default function PayrollView({
   const activeDocumentFieldLabels = activeDocumentProfile
     ? getPayrollDocumentFieldLabels(activeDocumentProfile)
     : getPayrollDocumentFieldLabels({ isPaymentVoucher: false });
+  const activeRegularPayrollRecord = activePayrollEmployee
+    ? payrollRecords2026
+      .filter(record => (
+        record?.employeeEmail?.toLowerCase() === activePayrollEmployee.email.toLowerCase() &&
+        record.payrollMonth === payMonthIndex &&
+        record.payrollYear === payYear &&
+        !isSeparatePayrollRecord(record)
+      ))
+      .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))[0]
+    : undefined;
 
   useEffect(() => {
     if (activePayrollEmployee) {
@@ -504,7 +515,7 @@ export default function PayrollView({
             payMonth={payMonthIndex}
             payYear={payYear}
             displaySettingsOverride={displaySettingsDraft}
-            payrollRecordOverride={selectedPayrollRecord || undefined}
+            payrollRecordOverride={selectedPayrollRecord || activeRegularPayrollRecord || undefined}
           />
         </div>
       ) : (

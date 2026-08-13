@@ -2410,6 +2410,7 @@ export default function App() {
               payrollRecords2026={filteredPayrollRecords2026}
               activeEntity={activeEntity}
               onBack={() => handleTabChange('payroll')}
+              onSavePayrollRecord={handleSavePayrollRecord2026}
               onShowNotification={triggerNotification}
             />
           )}
