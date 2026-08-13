@@ -516,6 +516,7 @@ export default function PayrollView({
             payYear={payYear}
             displaySettingsOverride={displaySettingsDraft}
             payrollRecordOverride={selectedPayrollRecord || activeRegularPayrollRecord || undefined}
+            allEmployeesForHrdCorp={entityEmployees}
           />
         </div>
       ) : (

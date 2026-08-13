@@ -4,6 +4,7 @@ import {
   getEmployeeForMonth,
   getPayrollBasicSalary,
   getSalaryProration,
+  getHrdCorpLevyRate,
   seedSocsoConfigurationsAndBrackets
 } from './data';
 import type { Employee } from './types';
@@ -153,6 +154,37 @@ assert.equal(manualStatutory.totalDeductions, 123);
 assert.equal(manualStatutory.totalEmployerContributions, 222);
 assert.equal(manualStatutory.netPay, 2977);
 
+const hrdCorpEmployee = createEmployee({
+  basicSalary: 3100,
+  allowanceGeneral: 100,
+  allowanceTransport: 100,
+  unpaidLeave: 50
+});
+assert.equal(getHrdCorpLevyRate(4), 0);
+assert.equal(getHrdCorpLevyRate(5), 0.005);
+assert.equal(getHrdCorpLevyRate(10), 0.01);
+assert.equal(calculatePayslip(hrdCorpEmployee, 8, 2026, {
+  hrdCorpLocalWorkerCount: 4,
+  ignoreSavedStatutory: true
+}).hrdCorpVal, 0);
+assert.equal(calculatePayslip(hrdCorpEmployee, 8, 2026, {
+  hrdCorpLocalWorkerCount: 5,
+  ignoreSavedStatutory: true
+}).hrdCorpVal, 16.25);
+assert.equal(calculatePayslip(hrdCorpEmployee, 8, 2026, {
+  hrdCorpLocalWorkerCount: 10,
+  ignoreSavedStatutory: true
+}).hrdCorpVal, 32.5);
+assert.equal(calculatePayslip({ ...hrdCorpEmployee, nationality: 'Singaporean' }, 8, 2026, {
+  hrdCorpLocalWorkerCount: 10,
+  ignoreSavedStatutory: true
+}).hrdCorpVal, 0);
+assert.equal(calculatePayslip(hrdCorpEmployee, 8, 2026, {
+  hrdCorpLocalWorkerCount: 5,
+  hrdCorpVoluntaryOptIn: false,
+  ignoreSavedStatutory: true
+}).hrdCorpVal, 0);
+
 const persistedStatutoryEmployee = createEmployee({
   historicalPayrollRecords: [{
     payrollMonth: 8,
@@ -185,7 +217,7 @@ assert.equal(persistedStatutory.skbbkEmpVal, 15);
 assert.equal(persistedStatutory.eisEmployeeVal, 16);
 assert.equal(persistedStatutory.eisEmployerVal, 17);
 assert.equal(persistedStatutory.taxPcbVal, 18);
-assert.equal(persistedStatutory.hrdCorpVal, 19);
+assert.equal(persistedStatutory.hrdCorpVal, 0);
 const persistedDescriptions = getEmployeeForMonth(persistedStatutoryEmployee, 8, 2026);
 assert.equal(persistedDescriptions.bonusDesc, 'August delivery milestone');
 assert.equal(persistedDescriptions.commissionDesc, 'Enterprise account commission');

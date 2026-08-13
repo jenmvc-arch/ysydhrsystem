@@ -1207,7 +1207,7 @@ export default function EmployeeDirectoryView({
       eisEmployer: 7.90,
       taxPcb: Math.round(Number(formSalary) * 0.1),
       unpaidLeave: 0,
-      hrdCorp: 103,
+      hrdCorp: 0,
       avatarUrl: formAvatarUrl || '',
       
       // New fields mapping
@@ -2459,10 +2459,6 @@ export default function EmployeeDirectoryView({
                       <div>
                         <span className="text-on-surface-variant text-[10px] uppercase block mb-1">EIS</span>
                         <span>RM {modalBreakdown.eisEmployerVal.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-                      </div>
-                      <div>
-                        <span className="text-on-surface-variant text-[10px] uppercase block mb-1">HRD Corp</span>
-                        <span>RM {modalBreakdown.hrdCorpVal.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                       </div>
                     </div>
                   </div>

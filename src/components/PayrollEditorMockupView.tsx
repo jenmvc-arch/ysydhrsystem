@@ -40,6 +40,7 @@ import {
   getSalaryProration,
   getSeparatePayoutConfig,
   getSeparatePayoutDocumentProfile,
+  getHrdCorpLocalWorkerCount,
   isEmployeeEligibleForPayrollPeriod,
   isSeparatePayrollRecord,
   type PayslipBreakdown,
@@ -168,9 +169,18 @@ const DEFAULT_DESCRIPTION_OVERRIDES: PayslipDescriptionOverrides = {
   taxPcb: 'Income Tax (PCB)'
 };
 
-const getInitialDraft = (employee: Employee, month: number, year: number, payoutKind?: Exclude<PayrollPayoutKind, 'regular'> | null): MockupDraft => {
+const getInitialDraft = (
+  employee: Employee,
+  month: number,
+  year: number,
+  payoutKind?: Exclude<PayrollPayoutKind, 'regular'> | null,
+  hrdCorpLocalWorkerCount = 0
+): MockupDraft => {
   const effectiveEmployee = getEmployeeForMonth(employee, month, year);
-  const breakdown = calculatePayslip(employee, month, year);
+  const breakdown = calculatePayslip(employee, month, year, {
+    hrdCorpLocalWorkerCount,
+    hrdCorpVoluntaryOptIn: true
+  });
   const documentProfile = getPayrollDocumentProfile(effectiveEmployee);
   const separatePayoutConfig = payoutKind ? getSeparatePayoutConfig(payoutKind) : null;
   const separatePayoutAmount = separatePayoutConfig
@@ -296,9 +306,10 @@ const getDraftFromPayrollRecord = (
   employee: Employee,
   month: number,
   year: number,
-  payoutKind?: Exclude<PayrollPayoutKind, 'regular'> | null
+  payoutKind?: Exclude<PayrollPayoutKind, 'regular'> | null,
+  hrdCorpLocalWorkerCount = 0
 ): MockupDraft => {
-  const fallbackDraft = getInitialDraft(employee, month, year, payoutKind);
+  const fallbackDraft = getInitialDraft(employee, month, year, payoutKind, hrdCorpLocalWorkerCount);
   const descriptions = {
     ...DEFAULT_DESCRIPTION_OVERRIDES,
     ...(record.deductionOthersDesc ? { deductionOthers: record.deductionOthersDesc } : {}),
@@ -345,7 +356,7 @@ const getDraftFromPayrollRecord = (
     eisEmployee: Number(record.eisEmployee ?? fallbackDraft.eisEmployee),
     eisEmployer: Number(record.eisEmployer ?? fallbackDraft.eisEmployer),
     taxPcb: Number(record.actualPCBDeducted ?? fallbackDraft.taxPcb),
-    hrdCorp: Number(record.hrdCorp ?? fallbackDraft.hrdCorp)
+    hrdCorp: fallbackDraft.hrdCorp
   };
 };
 
@@ -549,10 +560,29 @@ export default function PayrollEditorMockupView({
     payYear,
     separatePayoutKind
   );
+  const hrdCorpLocalWorkerCount = getHrdCorpLocalWorkerCount(
+    employees,
+    payMonth,
+    payYear,
+    rawActiveEmployee.entityId
+  );
   const savedRecordDraft = matchedPayrollRecord
-    ? getDraftFromPayrollRecord(matchedPayrollRecord, rawActiveEmployee, payMonth, payYear, separatePayoutKind)
+    ? getDraftFromPayrollRecord(
+      matchedPayrollRecord,
+      rawActiveEmployee,
+      payMonth,
+      payYear,
+      separatePayoutKind,
+      hrdCorpLocalWorkerCount
+    )
     : null;
-  const currentDraft = savedRecordDraft || demoDrafts[draftKey] || getInitialDraft(rawActiveEmployee, payMonth, payYear, separatePayoutKind);
+  const currentDraft = savedRecordDraft || demoDrafts[draftKey] || getInitialDraft(
+    rawActiveEmployee,
+    payMonth,
+    payYear,
+    separatePayoutKind,
+    hrdCorpLocalWorkerCount
+  );
   const activeDraft = editingDraft || currentDraft;
   const effectiveEmployee = getEmployeeForMonth(rawActiveEmployee, payMonth, payYear);
   const selectedPayoutAmount = getDraftPayoutAmount(activeDraft, separatePayoutKind);
@@ -592,7 +622,9 @@ export default function PayrollEditorMockupView({
     return calculatePayslip(employeeForCalc, payMonth, payYear, {
       basicSalaryOverride: isSeparatePayoutMode ? 0 : draft.basicSalary,
       statutorySalaryOverride: isSeparatePayoutMode ? draftStatutoryBasis : undefined,
-      ignoreSavedStatutory: true
+      ignoreSavedStatutory: true,
+      hrdCorpLocalWorkerCount,
+      hrdCorpVoluntaryOptIn: true
     });
   };
   const getDefaultStatutoryDraftValues = (draft: MockupDraft, treatment: ContractStatutoryTreatment) => {
@@ -635,6 +667,8 @@ export default function PayrollEditorMockupView({
     basicSalaryOverride: isSeparatePayoutMode ? 0 : activeDraft.basicSalary,
     statutorySalaryOverride: isSeparatePayoutMode ? statutoryBasis : undefined,
     ignoreSavedStatutory: true,
+    hrdCorpLocalWorkerCount,
+    hrdCorpVoluntaryOptIn: true,
     statutoryOverrides: {
       epfEmployee: activeDraft.epfEmployee,
       epfEmployer: activeDraft.epfEmployer,
@@ -643,8 +677,7 @@ export default function PayrollEditorMockupView({
       lindung24Employee: activeDraft.lindung24Employee,
       eisEmployee: activeDraft.eisEmployee,
       eisEmployer: activeDraft.eisEmployer,
-      taxPcb: activeDraft.taxPcb,
-      hrdCorp: activeDraft.hrdCorp
+      taxPcb: activeDraft.taxPcb
     }
   });
   const ytd = replaceCurrentYtd(
@@ -749,6 +782,8 @@ export default function PayrollEditorMockupView({
         basicSalaryOverride: isSeparatePayoutMode ? 0 : draft.basicSalary,
         statutorySalaryOverride: isSeparatePayoutMode ? getDraftPayoutAmount(draft, separatePayoutKind) : undefined,
         ignoreSavedStatutory: true,
+        hrdCorpLocalWorkerCount,
+        hrdCorpVoluntaryOptIn: true,
         statutoryOverrides: {
           epfEmployee: draft.epfEmployee,
           epfEmployer: draft.epfEmployer,
@@ -757,8 +792,7 @@ export default function PayrollEditorMockupView({
           lindung24Employee: draft.lindung24Employee,
           eisEmployee: draft.eisEmployee,
           eisEmployer: draft.eisEmployer,
-          taxPcb: draft.taxPcb,
-          hrdCorp: draft.hrdCorp
+          taxPcb: draft.taxPcb
         }
       }
     );
@@ -1464,7 +1498,6 @@ export default function PayrollEditorMockupView({
 	              {renderEmployerLine(`EPF (${effectiveEmployee.epfRateEmployer || 13}%)`, 'epfEmployer', breakdown.epfEmployerValue)}
 	              {renderEmployerLine('SOCSO', 'socsoEmployer', breakdown.socsoEmployerVal)}
 	              {renderEmployerLine('EIS', 'eisEmployer', breakdown.eisEmployerVal)}
-	              {renderEmployerLine('HRD Corp', 'hrdCorp', breakdown.hrdCorpVal)}
 	            </div>
 	          </section>
 	        )}

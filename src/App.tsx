@@ -2028,6 +2028,7 @@ export default function App() {
           isPrintView={true}
           userRole={currentUserRole || 'Global Administrator'}
           entities={entities}
+          allEmployeesForHrdCorp={currentActiveEmployees}
         />
       </div>
     );
@@ -2424,6 +2425,7 @@ export default function App() {
               activeEntity={activeEntity}
               userRole={currentUserRole || 'Global Administrator'}
               entities={entities}
+              allEmployeesForHrdCorp={currentActiveEmployees}
             />
           )}
 

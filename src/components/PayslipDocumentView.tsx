@@ -21,7 +21,7 @@ import {
 import { pdf } from '@react-pdf/renderer';
 import { PayslipPDFDocument } from './PayslipPDFDocument';
 import { Employee, CorporateEntity, PayrollDocumentDisplaySettings, PayrollRecord2026 } from '../types';
-import { calculatePayslip, getPayrollDocumentDisplaySettings, getPayrollDocumentFieldLabels, getPayrollDocumentProfile, getPayrollDocumentProfileForRecord, getPayrollBasicSalary, getSalaryProration, getDirectLogoUrl, calculateSocsoContribution, getEmployeeForMonth, getEffectiveTerminationDateForDate, getSeparatePayoutConfig, isSeparatePayrollRecord } from '../data';
+import { calculatePayslip, getHrdCorpLocalWorkerCount, getPayrollDocumentDisplaySettings, getPayrollDocumentFieldLabels, getPayrollDocumentProfile, getPayrollDocumentProfileForRecord, getPayrollBasicSalary, getSalaryProration, getDirectLogoUrl, calculateSocsoContribution, getEmployeeForMonth, getEffectiveTerminationDateForDate, getSeparatePayoutConfig, isSeparatePayrollRecord } from '../data';
 import { formatToDDMMMYYYY } from '../lib/dateUtils';
 
 interface PayslipDocumentViewProps {
@@ -37,6 +37,7 @@ interface PayslipDocumentViewProps {
   payrollRecordOverride?: PayrollRecord2026;
   userRole?: string;
   entities?: CorporateEntity[];
+  allEmployeesForHrdCorp?: Employee[];
 }
 
 export default function PayslipDocumentView({
@@ -51,7 +52,8 @@ export default function PayslipDocumentView({
   displaySettingsOverride,
   payrollRecordOverride,
   userRole = 'Global Administrator',
-  entities
+  entities,
+  allEmployeesForHrdCorp
 }: PayslipDocumentViewProps) {
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
@@ -69,6 +71,12 @@ export default function PayslipDocumentView({
   const params = new URLSearchParams(window.location.search);
   const payMonth = propPayMonth !== undefined ? propPayMonth : (params.get('month') ? parseInt(params.get('month')!, 10) : 10);
   const payYear = propPayYear !== undefined ? propPayYear : (params.get('year') ? parseInt(params.get('year')!, 10) : 2026);
+  const hrdCorpLocalWorkerCount = getHrdCorpLocalWorkerCount(
+    allEmployeesForHrdCorp || employees,
+    payMonth,
+    payYear,
+    rawActiveEmployee.entityId
+  );
 
   const activeEmployee = getEmployeeForMonth(rawActiveEmployee, payMonth, payYear);
   const activePayrollRecord = payrollRecordOverride || null;
@@ -136,6 +144,8 @@ export default function PayslipDocumentView({
         : undefined,
       statutoryEligibilityOverride: isSeparatePayoutDocument ? documentProfile.statutoryEnabled : undefined,
       ignoreSavedStatutory: true,
+      hrdCorpLocalWorkerCount,
+      hrdCorpVoluntaryOptIn: true,
       statutoryOverrides: {
         epfEmployee: activePayrollRecord.epfEmployee,
         epfEmployer: activePayrollRecord.epfEmployer,
@@ -144,11 +154,13 @@ export default function PayslipDocumentView({
         lindung24Employee: activePayrollRecord.lindung24Employee,
         eisEmployee: activePayrollRecord.eisEmployee,
         eisEmployer: activePayrollRecord.eisEmployer,
-        taxPcb: activePayrollRecord.actualPCBDeducted,
-        hrdCorp: activePayrollRecord.hrdCorp
+        taxPcb: activePayrollRecord.actualPCBDeducted
       }
     })
-    : calculatePayslip(rawActiveEmployee, payMonth, payYear);
+    : calculatePayslip(rawActiveEmployee, payMonth, payYear, {
+      hrdCorpLocalWorkerCount,
+      hrdCorpVoluntaryOptIn: true
+    });
   const employeeEntity = entities?.find(ent => ent.id === activeEmployee.entityId) || activeEntity;
   const lastWorkingDay = getEffectiveTerminationDateForDate(
     payrollDocumentEmployee,
@@ -262,6 +274,7 @@ export default function PayslipDocumentView({
           year={payYear}
           payrollRecordOverride={activePayrollRecord || undefined}
           displaySettingsOverride={displaySettingsOverride}
+          hrdCorpLocalWorkerCount={hrdCorpLocalWorkerCount}
         />
       );
       const blob = await pdf(doc).toBlob();
@@ -838,12 +851,6 @@ export default function PayslipDocumentView({
                 <p className="font-mono font-bold">RM {breakdown.eisEmployerVal.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
               </div>
 
-              <div className="hidden md:block w-[2px] h-7 bg-[#D8CFC4]" />
-
-              <div className="flex-1 min-w-[80px] text-center flex flex-col justify-center items-center">
-                <p className="text-[9px] text-[#6B6B6B] uppercase font-bold mb-1">HRD Corp</p>
-                <p className="font-mono font-bold">RM {breakdown.hrdCorpVal.toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
-              </div>
             </div>
           </div>
           )}

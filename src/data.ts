@@ -94,6 +94,32 @@ export interface PayslipCalculationOptions {
   statutoryEligibilityOverride?: boolean;
   statutoryOverrides?: PayslipStatutoryOverrides;
   ignoreSavedStatutory?: boolean;
+  hrdCorpLocalWorkerCount?: number;
+  hrdCorpVoluntaryOptIn?: boolean;
+}
+
+export function isLocalHrdCorpWorker(employee: Pick<Employee, 'nationality'>): boolean {
+  const nationality = String(employee.nationality || '').trim().toLowerCase();
+  return nationality === 'malaysian' || nationality === 'local' || nationality.includes('malaysia');
+}
+
+export function getHrdCorpLevyRate(localWorkerCount: number, voluntaryOptIn = true): number {
+  if (localWorkerCount >= 10) return 0.01;
+  if (localWorkerCount >= 5 && voluntaryOptIn) return 0.005;
+  return 0;
+}
+
+export function getHrdCorpLocalWorkerCount(
+  employees: Employee[],
+  month: number,
+  year: number,
+  entityId?: string
+): number {
+  return employees.filter(employee => (
+    (!entityId || employee.entityId === entityId) &&
+    isLocalHrdCorpWorker(employee) &&
+    isEmployeeEligibleForPayrollPeriod(employee, month, year)
+  )).length;
 }
 
 export interface PayrollDocumentProfile {
@@ -2549,8 +2575,7 @@ export function calculatePayslip(employee: Employee, month?: number, year?: numb
     lindung24Employee: savedRecord.lindung24Employee,
     eisEmployee: savedRecord.eisEmployee,
     eisEmployer: savedRecord.eisEmployer,
-    taxPcb: savedRecord.actualPCBDeducted,
-    hrdCorp: savedRecord.hrdCorp
+    taxPcb: savedRecord.actualPCBDeducted
   } : {};
   const statutoryOverrides = { ...savedStatutory, ...options.statutoryOverrides };
   const basicSalary = options.basicSalaryOverride !== undefined
@@ -2668,8 +2693,20 @@ export function calculatePayslip(employee: Employee, month?: number, year?: numb
       : mergedEmployee.taxPcb)
     : 0;
   const taxPcbVal = appliedStatutoryOverrides.taxPcb ?? autoTaxPcbVal;
+  const hrdCorpRate = getHrdCorpLevyRate(
+    options.hrdCorpLocalWorkerCount ?? 0,
+    options.hrdCorpVoluntaryOptIn ?? true
+  );
+  const hrdCorpWageBase = Math.max(0, basicSalary - unpaidLeaveVal) + allowancesSum;
+  const autoHrdCorpVal = (
+    isEligible &&
+    isLocalHrdCorpWorker(mergedEmployee) &&
+    hrdCorpRate > 0
+  )
+    ? roundToTwoDecimals(hrdCorpWageBase * hrdCorpRate)
+    : 0;
   const hrdCorpVal = isEligible
-    ? appliedStatutoryOverrides.hrdCorp ?? (mergedEmployee.hrdCorp || 0)
+    ? appliedStatutoryOverrides.hrdCorp ?? autoHrdCorpVal
     : 0;
 
   // Total Deductions

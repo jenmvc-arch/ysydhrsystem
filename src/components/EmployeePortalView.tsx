@@ -1022,7 +1022,12 @@ export default function EmployeePortalView({
           {[
             { label: 'Basic salary', value: latestPayrollBreakdown?.grossEarnings ? `RM ${currency(latestPayrollBreakdown.grossEarnings - (latestPayrollBreakdown.allowancesSum + latestPayrollBreakdown.reimbursementsSum + latestPayrollBreakdown.netPay ? 0 : 0))}` : '—' },
             { label: 'Total deductions', value: latestPayrollBreakdown ? `RM ${currency(latestPayrollBreakdown.totalDeductions)}` : '—' },
-            { label: 'Employer contributions', value: latestPayrollBreakdown ? `RM ${currency(latestPayrollBreakdown.totalEmployerContributions)}` : '—' },
+            { label: 'Employer contributions', value: latestPayrollBreakdown ? `RM ${currency(
+              latestPayrollBreakdown.epfEmployerValue +
+              latestPayrollBreakdown.socsoEmployerVal +
+              latestPayrollBreakdown.eisEmployerVal +
+              latestPayrollBreakdown.skbbkEmplyrVal
+            )}` : '—' },
             { label: 'Tax / PCB', value: latestPayrollBreakdown ? `RM ${currency(latestPayrollBreakdown.taxPcbVal)}` : '—' },
           ].map((item) => (
             <div key={item.label} className="rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">

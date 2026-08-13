@@ -405,9 +405,10 @@ interface PayslipPDFDocumentProps {
   year?: number;
   payrollRecordOverride?: PayrollRecord2026;
   displaySettingsOverride?: Partial<PayrollDocumentDisplaySettings>;
+  hrdCorpLocalWorkerCount?: number;
 }
 
-export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 10, year = 2026, payrollRecordOverride, displaySettingsOverride }: PayslipPDFDocumentProps) => {
+export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 10, year = 2026, payrollRecordOverride, displaySettingsOverride, hrdCorpLocalWorkerCount = 0 }: PayslipPDFDocumentProps) => {
   const activePayrollRecord = payrollRecordOverride || null;
   const baseEmployee = getEmployeeForMonth(sourceEmployee, month, year);
   const isSeparatePayoutDocument = !!activePayrollRecord && isSeparatePayrollRecord(activePayrollRecord);
@@ -470,6 +471,8 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
       statutorySalaryOverride: isSeparatePayoutDocument ? payoutAmount : undefined,
       statutoryEligibilityOverride: isSeparatePayoutDocument ? documentProfile.statutoryEnabled : undefined,
       ignoreSavedStatutory: true,
+      hrdCorpLocalWorkerCount,
+      hrdCorpVoluntaryOptIn: true,
       statutoryOverrides: {
         epfEmployee: activePayrollRecord.epfEmployee,
         epfEmployer: activePayrollRecord.epfEmployer,
@@ -478,11 +481,13 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
         lindung24Employee: activePayrollRecord.lindung24Employee,
         eisEmployee: activePayrollRecord.eisEmployee,
         eisEmployer: activePayrollRecord.eisEmployer,
-        taxPcb: activePayrollRecord.actualPCBDeducted,
-        hrdCorp: activePayrollRecord.hrdCorp
+        taxPcb: activePayrollRecord.actualPCBDeducted
       }
     })
-    : calculatePayslip(employee, month, year);
+    : calculatePayslip(employee, month, year, {
+      hrdCorpLocalWorkerCount,
+      hrdCorpVoluntaryOptIn: true
+    });
   const lastWorkingDay = getEffectiveTerminationDateForDate(
     employee,
     `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
@@ -967,12 +972,6 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
               <Text style={[styles.detailValue, { color: '#333333' }]}>{formatCurrency(breakdown.eisEmployerVal)}</Text>
             </View>
 
-            <View style={styles.contributionDivider} />
-
-            <View style={styles.contributionCol}>
-              <Text style={[styles.detailLabel, { color: '#6b7280' }]}>HRD Corp</Text>
-              <Text style={[styles.detailValue, { color: '#333333' }]}>{formatCurrency(breakdown.hrdCorpVal)}</Text>
-            </View>
           </View>
         </View>
         )}
