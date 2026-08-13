@@ -481,7 +481,7 @@ export default function EmployeeDirectoryView({
       dateOfConfirmation: editEmploymentType === 'Confirmation' ? editDateOfConfirmation : '',
       epfRateEmployee: Number(editEpfRateEmployee),
       epfRateEmployer: Number(editEpfRateEmployer),
-      taxPcb: Number(editTaxPcb),
+      taxPcb: Number(editTaxPcb) > 0 ? Number(editTaxPcb) : 0,
       emergencyContactName: editEmergencyContactName,
       emergencyContactRelation: editEmergencyContactRelation,
       emergencyContactPhone: editEmergencyContactPhone,
@@ -617,6 +617,9 @@ export default function EmployeeDirectoryView({
   // Selected Employee object (synchronized with parent state in real time)
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId) || null;
   const selectedPayrollDocumentProfile = selectedEmployee ? getPayrollDocumentProfile(selectedEmployee) : null;
+  const selectedEmployeePayslipBreakdown = selectedEmployee
+    ? calculatePayslip(selectedEmployee, currentMonth, currentYear)
+    : null;
 
   const getAccountSummary = (employee: Employee): EmployeeAccountSummary => (
     accountSummaries[employee.id]
@@ -847,7 +850,7 @@ export default function EmployeeDirectoryView({
         status: currentStatus,
         employmentType: localEmploymentType,
         basicSalary: localBasicSalary,
-        taxPcb: localTaxPcb,
+        taxPcb: Number(localTaxPcb) > 0 ? Number(localTaxPcb) : 0,
         entityId: localEntityId,
         salaryAdjustments: localSalaryAdjustments,
         careerHistory: localCareerHistory,
@@ -1205,7 +1208,7 @@ export default function EmployeeDirectoryView({
       skbbkEmployer: 17.15,
       eisEmployee: 7.90,
       eisEmployer: 7.90,
-      taxPcb: Math.round(Number(formSalary) * 0.1),
+      taxPcb: 0,
       unpaidLeave: 0,
       hrdCorp: 0,
       avatarUrl: formAvatarUrl || '',
@@ -1367,7 +1370,6 @@ export default function EmployeeDirectoryView({
           return;
         }
         setLocalBasicSalary(numericSalary);
-        setLocalTaxPcb(Math.round(numericSalary * 0.1));
         newVal = `RM ${numericSalary.toLocaleString()}`;
         break;
       case 'Subsidiary Transfer':
@@ -3134,7 +3136,9 @@ export default function EmployeeDirectoryView({
                         </div>
                         <div>
                           <span className="text-outline text-[9px] block uppercase font-bold">Statutory Tax PCB</span>
-                          <span className="font-mono text-on-surface">RM {selectedEmployee.taxPcb.toLocaleString()}</span>
+                          <span className="font-mono text-on-surface">
+                            RM {(selectedEmployeePayslipBreakdown?.taxPcbVal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -3399,13 +3403,16 @@ export default function EmployeeDirectoryView({
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Tax PCB override (RM)</label>
+                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Manual PCB override (RM)</label>
                           <input
                             type="number"
                             value={editTaxPcb}
                             onChange={(e) => setEditTaxPcb(Number(e.target.value))}
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           />
+                          <p className="mt-1 text-[10px] text-on-surface-variant">
+                            Leave as 0 to auto-calculate PCB only when salary is taxable.
+                          </p>
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Employee EPF Rate (%)</label>

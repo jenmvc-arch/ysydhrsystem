@@ -155,6 +155,34 @@ assert.equal(manualStatutory.totalDeductions, 123);
 assert.equal(manualStatutory.totalEmployerContributions, 222);
 assert.equal(manualStatutory.netPay, 2977);
 
+const lowSalaryPcb = calculatePayslip(createEmployee({
+  basicSalary: 2000,
+  taxPcb: 0,
+  optInPcb: true
+}), 8, 2026, { ignoreSavedStatutory: true });
+assert.equal(lowSalaryPcb.taxPcbVal, 0);
+
+const highSalaryAutoPcb = calculatePayslip(createEmployee({
+  basicSalary: 8500,
+  taxPcb: 0,
+  optInPcb: true
+}), 8, 2026, { ignoreSavedStatutory: true });
+assert.ok(highSalaryAutoPcb.taxPcbVal > 0);
+
+const highSalaryPcbOptOut = calculatePayslip(createEmployee({
+  basicSalary: 8500,
+  taxPcb: 0,
+  optInPcb: false
+}), 8, 2026, { ignoreSavedStatutory: true });
+assert.equal(highSalaryPcbOptOut.taxPcbVal, 0);
+
+const manualProfilePcbOverride = calculatePayslip(createEmployee({
+  basicSalary: 8500,
+  taxPcb: 321,
+  optInPcb: true
+}), 8, 2026, { ignoreSavedStatutory: true });
+assert.equal(manualProfilePcbOverride.taxPcbVal, 321);
+
 const hrdCorpEmployee = createEmployee({
   basicSalary: 3100,
   allowanceGeneral: 100,

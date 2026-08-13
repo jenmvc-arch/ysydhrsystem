@@ -2699,10 +2699,13 @@ export function calculatePayslip(employee: Employee, month?: number, year?: numb
   const eisEmployerVal = appliedStatutoryOverrides.eisEmployer ?? autoEisEmployerVal;
 
   // Calculate PCB from the current profile when no saved value exists.
+  // A profile value of 0 means "auto/no manual override"; saved payroll
+  // records still pass an explicit statutory override when PCB was finalized.
+  const profileTaxPcbOverride = Number(mergedEmployee.taxPcb || 0) > 0
+    ? Number(mergedEmployee.taxPcb || 0)
+    : undefined;
   const autoTaxPcbVal = (isEligible && optInPcb)
-    ? (mergedEmployee.taxPcb === undefined
-      ? calculatePcb2026(statutorySalary, mergedEmployee.maritalStatus || 'Single', mergedEmployee.spouseIsWorking || 'No', mergedEmployee.dependants?.length || 0, autoEpfEmployeeValue, actMonth)
-      : mergedEmployee.taxPcb)
+    ? (profileTaxPcbOverride ?? calculatePcb2026(statutorySalary, mergedEmployee.maritalStatus || 'Single', mergedEmployee.spouseIsWorking || 'No', mergedEmployee.dependants?.length || 0, autoEpfEmployeeValue, actMonth))
     : 0;
   const taxPcbVal = appliedStatutoryOverrides.taxPcb ?? autoTaxPcbVal;
   const hrdCorpRate = getHrdCorpLevyRate(
