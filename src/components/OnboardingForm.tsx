@@ -423,6 +423,7 @@ export default function OnboardingForm({
         contactNumber: phone,
         taxNumber: taxNumber.toUpperCase(),
         epfNumber: epfNumber || undefined,
+        socsoNumber: socsoNumber.replace(/-/g, ''),
         employmentType: employmentType,
         maritalStatus: maritalStatus,
         eligibleForStatutory: 'Yes',

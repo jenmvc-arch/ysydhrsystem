@@ -173,6 +173,7 @@ export interface Employee {
   contactNumber?: string;
   taxNumber: string;
   epfNumber?: string;
+  socsoNumber?: string;
   employmentType:
     | 'Internship'
     | 'Probation'

@@ -383,6 +383,10 @@ export default function EmployeeDirectoryView({
   const [editNricPassport, setEditNricPassport] = useState('');
   const [editNationality, setEditNationality] = useState('');
   const [editContactNumber, setEditContactNumber] = useState('');
+  const [editTaxNumber, setEditTaxNumber] = useState('');
+  const [editEpfNumber, setEditEpfNumber] = useState('');
+  const [editSocsoNumber, setEditSocsoNumber] = useState('');
+  const [isEditSocsoNumberAutoFilled, setIsEditSocsoNumberAutoFilled] = useState(true);
   const [editEmploymentType, setEditEmploymentType] = useState('');
   const [editContractStatutoryTreatment, setEditContractStatutoryTreatment] = useState<NonNullable<Employee['contractStatutoryTreatment']>>('without_statutory');
   const [editDateOfJoined, setEditDateOfJoined] = useState('');
@@ -489,6 +493,16 @@ export default function EmployeeDirectoryView({
     setEditNricPassport(formatNricOrPassport(selectedEmployee.nricPassport || ''));
     setEditNationality(toUppercase(selectedEmployee.nationality || ''));
     setEditContactNumber(selectedEmployee.contactNumber || '');
+    setEditTaxNumber(toUppercase(selectedEmployee.taxNumber || ''));
+    setEditEpfNumber(toUppercase(selectedEmployee.epfNumber || ''));
+    const compactNric = formatNricOrPassport(selectedEmployee.nricPassport || '').replace(/-/g, '');
+    setEditSocsoNumber(
+      selectedEmployee.socsoNumber
+        || compactNric
+    );
+    setIsEditSocsoNumberAutoFilled(
+      !selectedEmployee.socsoNumber || selectedEmployee.socsoNumber === compactNric
+    );
     setEditEmploymentType(selectedEmployee.employmentType || '');
     setEditContractStatutoryTreatment(
       selectedEmployee.contractStatutoryTreatment ||
@@ -581,6 +595,9 @@ export default function EmployeeDirectoryView({
       nricPassport: editNricPassport,
       nationality: editNationality,
       contactNumber: editContactNumber,
+      taxNumber: editTaxNumber,
+      epfNumber: editEpfNumber,
+      socsoNumber: editSocsoNumber.replace(/-/g, ''),
       employmentType: editEmploymentType,
       eligibleForStatutory: updatedDocumentProfile.statutoryEnabled ? 'Yes' : 'No',
       contractStatutoryTreatment: contractTreatment,
@@ -704,9 +721,6 @@ export default function EmployeeDirectoryView({
   const [editOptInEis, setEditOptInEis] = useState<boolean>(true);
   const [editOptInPcb, setEditOptInPcb] = useState<boolean>(true);
   const [editEnableLindung24, setEditEnableLindung24] = useState<boolean>(false);
-  const [editTaxNumber, setEditTaxNumber] = useState('');
-  const [editEpfNumber, setEditEpfNumber] = useState('');
-
   // Temp dependant fields for detail editor
   const [detailTempDepName, setDetailTempDepName] = useState('');
   const [detailTempDepGender, setDetailTempDepGender] = useState<'Male' | 'Female'>('Male');
@@ -1085,8 +1099,6 @@ export default function EmployeeDirectoryView({
       ...dependant,
       name: toUppercase(dependant.name || '')
     })));
-    setEditTaxNumber(toUppercase(selectedEmployee.taxNumber || ''));
-    setEditEpfNumber(toUppercase(selectedEmployee.epfNumber || ''));
     setIsEditingFamily(true);
   };
 
@@ -1113,8 +1125,6 @@ export default function EmployeeDirectoryView({
     
     const updates: Partial<Employee> = {
       maritalStatus: editMaritalStatus,
-      taxNumber: editTaxNumber,
-      epfNumber: editEpfNumber,
       eligibleForStatutory: editEligibleForStatutory,
       hasDependants: finalHasDependants,
       dependants: finalHasDependants === 'Yes' ? finalDependants : []
@@ -1254,6 +1264,7 @@ export default function EmployeeDirectoryView({
       contactNumber: formContactNumber,
       taxNumber: toUppercase(formTaxNumber || `TX-${Math.floor(100000000 + Math.random() * 900000000)}`),
       epfNumber: toUppercase(formEpfNumber || `EP-${Math.floor(100000000 + Math.random() * 900000000)}`),
+      socsoNumber: formatNricOrPassport(formNricPassport).replace(/-/g, ''),
       employmentType: formEmploymentType,
       maritalStatus: formMaritalStatus,
       eligibleForStatutory: newEmployeeDocumentProfile.statutoryEnabled ? 'Yes' : 'No',
@@ -3062,6 +3073,13 @@ export default function EmployeeDirectoryView({
                         <div className="font-mono text-sm font-semibold text-on-surface">{selectedEmployee.epfNumber || 'N/A'}</div>
                       </div>
 
+                      <div className="p-3 bg-surface-container-low rounded border border-neutral-border">
+                        <div className="text-on-surface-variant font-bold text-[10px] uppercase tracking-wider mb-0.5">SOCSO Number</div>
+                        <div className="font-mono text-sm font-semibold text-on-surface">
+                          {selectedEmployee.socsoNumber || selectedEmployee.nricPassport?.replace(/-/g, '') || 'N/A'}
+                        </div>
+                      </div>
+
                       {/* Row 3 */}
                       <div className="p-3 bg-surface-container-low rounded border border-neutral-border">
                         <div className="text-on-surface-variant font-bold text-[10px] uppercase tracking-wider mb-0.5">Type of Employment</div>
@@ -3278,7 +3296,13 @@ export default function EmployeeDirectoryView({
                           <input
                             type="text"
                             value={editNricPassport}
-                            onChange={(e) => setEditNricPassport(formatNricOrPassport(e.target.value))}
+                            onChange={(e) => {
+                              const nextNric = formatNricOrPassport(e.target.value);
+                              setEditNricPassport(nextNric);
+                              if (isEditSocsoNumberAutoFilled) {
+                                setEditSocsoNumber(nextNric.replace(/-/g, ''));
+                              }
+                            }}
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           />
                         </div>
@@ -3299,6 +3323,44 @@ export default function EmployeeDirectoryView({
                             onChange={(e) => setEditContactNumber(e.target.value)}
                             className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs"
                           />
+                        </div>
+                        <div className="sm:col-span-2 rounded border border-primary/20 bg-primary/5 p-3">
+                          <span className="block text-[10px] font-bold text-primary uppercase tracking-wider mb-2">Statutory Registration Numbers</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">TIN Number (Tax Number)</label>
+                              <input
+                                type="text"
+                                value={editTaxNumber}
+                                onChange={(e) => setEditTaxNumber(toUppercase(e.target.value))}
+                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">KWSP Number (EPF)</label>
+                              <input
+                                type="text"
+                                value={editEpfNumber}
+                                onChange={(e) => setEditEpfNumber(toUppercase(e.target.value))}
+                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">SOCSO Number</label>
+                              <input
+                                type="text"
+                                value={editSocsoNumber}
+                                onChange={(e) => {
+                                  setEditSocsoNumber(e.target.value.replace(/-/g, ''));
+                                  setIsEditSocsoNumberAutoFilled(false);
+                                }}
+                                className="w-full bg-white border border-neutral-border rounded p-1.5 focus:ring-1 focus:ring-primary outline-none text-xs font-mono"
+                              />
+                              <p className="mt-1 text-[10px] text-on-surface-variant">
+                                Auto-filled from NRIC without hyphens; editable.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Employment Type</label>
@@ -3866,30 +3928,6 @@ export default function EmployeeDirectoryView({
                           <option value="Widowed">Widowed</option>
                         </select>
                       </div>
-
-                      {/* Statutory Numbers */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">Income Tax Number</label>
-                          <input
-                            type="text"
-                            value={editTaxNumber}
-                            onChange={(e) => setEditTaxNumber(toUppercase(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 text-xs focus:ring-1 focus:ring-primary outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant uppercase mb-1">EPF Member Number</label>
-                          <input
-                            type="text"
-                            value={editEpfNumber}
-                            onChange={(e) => setEditEpfNumber(toUppercase(e.target.value))}
-                            className="w-full bg-white border border-neutral-border rounded p-1.5 text-xs focus:ring-1 focus:ring-primary outline-none"
-                          />
-                        </div>
-                      </div>
-
-
 
                       {/* Married -> Spouse Details */}
                       {editMaritalStatus === 'Married' && (

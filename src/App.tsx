@@ -982,6 +982,7 @@ export default function App() {
             contactNumber: e.contactNumber || '',
             taxNumber: e.taxNumber || '',
             epfNumber: e.epfNumber || '',
+            socsoNumber: e.socsoNumber || '',
             employmentType: e.employmentType || 'Confirmation',
             maritalStatus: e.maritalStatus || 'Single',
             eligibleForStatutory: e.eligibleForStatutory || 'Yes',
@@ -1499,6 +1500,7 @@ export default function App() {
           contactNumber: newEmployee.contactNumber,
           taxNumber: newEmployee.taxNumber,
           epfNumber: newEmployee.epfNumber || '',
+          socsoNumber: newEmployee.socsoNumber || '',
           employmentType: newEmployee.employmentType,
           maritalStatus: newEmployee.maritalStatus,
           eligibleForStatutory: newEmployee.eligibleForStatutory || 'Yes',
@@ -1682,6 +1684,7 @@ export default function App() {
         if (updates.contactNumber !== undefined) payloadUpdates.contactNumber = updates.contactNumber;
         if (updates.taxNumber !== undefined) payloadUpdates.taxNumber = updates.taxNumber;
         if (updates.epfNumber !== undefined) payloadUpdates.epfNumber = updates.epfNumber;
+        if (updates.socsoNumber !== undefined) payloadUpdates.socsoNumber = updates.socsoNumber;
         if (updates.employmentType !== undefined) payloadUpdates.employmentType = updates.employmentType;
         if (updates.maritalStatus !== undefined) payloadUpdates.maritalStatus = updates.maritalStatus;
         if (updates.eligibleForStatutory !== undefined) payloadUpdates.eligibleForStatutory = updates.eligibleForStatutory;
