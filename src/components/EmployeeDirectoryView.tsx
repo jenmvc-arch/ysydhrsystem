@@ -4785,112 +4785,9 @@ export default function EmployeeDirectoryView({
                   </div>
                 )}
 
-                {/* Do you have dependants? */}
-                {true && (
-                  <div className="p-4 bg-zinc-50 border border-neutral-border rounded-lg space-y-4 animate-in fade-in duration-200">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-on-surface uppercase tracking-wider block">Do you have dependants?</span>
-                      <select
-                        value={formHasDependants} onChange={(e) => setFormHasDependants(e.target.value as any)}
-                        className="bg-white border border-neutral-border rounded p-1 text-xs focus:ring-1 focus:ring-primary outline-none"
-                      >
-                        <option value="No">No</option>
-                        <option value="Yes">Yes</option>
-                      </select>
-                    </div>
-
-                    {/* Dependant list & addition if Has Dependants = Yes */}
-                    {formHasDependants === 'Yes' && (
-                      <div className="space-y-3 pt-2 border-t border-neutral-border/60 animate-in slide-in-from-top-1 duration-150">
-                        <span className="text-[11px] font-bold text-primary uppercase block">Dependants Registry (Max. 10 Pax)</span>
-                        
-                        {/* Dynamic List */}
-                        {formDependants.length > 0 ? (
-                          <div className="border border-neutral-border/50 rounded overflow-hidden">
-                            <table className="w-full text-xs text-left">
-                              <thead className="bg-neutral-light border-b border-neutral-border">
-                                <tr>
-                                  <th className="p-2 font-bold text-on-surface-variant">Name</th>
-                                  <th className="p-2 font-bold text-on-surface-variant w-24">Gender</th>
-                                  <th className="p-2 font-bold text-on-surface-variant w-28">DOB</th>
-                                  <th className="p-2 text-right w-12"></th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-neutral-border/40">
-                                {formDependants.map((dep, idx) => (
-                                  <tr key={idx} className="bg-white hover:bg-neutral-light/30">
-                                    <td className="p-2 font-semibold text-on-surface">{dep.name}</td>
-                                    <td className="p-2">{dep.gender}</td>
-                                    <td className="p-2 font-mono">{formatToDDMMMYYYY(dep.dob)}</td>
-                                    <td className="p-2 text-right">
-                                      <button 
-                                        type="button"
-                                        onClick={() => handleRemoveFormDependant(idx)}
-                                        className="text-error hover:text-red-700 p-1 cursor-pointer"
-                                      >
-                                        <X className="w-3.5 h-3.5" />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="text-xs italic text-on-surface-variant bg-white p-3 rounded border border-neutral-border/40 text-center">
-                            No dependants added yet. Please specify details below to add.
-                          </div>
-                        )}
-
-                        {/* Interactive addition fields */}
-                        {formDependants.length < 10 && (
-                          <div className="bg-white p-3 rounded border border-neutral-border/40 space-y-2">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                              <div>
-                                <label className="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Dependant Name</label>
-                                <input 
-                                  type="text"
-                                  value={tempDepName} onChange={(e) => setTempDepName(toUppercase(e.target.value))}
-                                  placeholder="e.g. Sally Doe"
-                                  className="w-full bg-white border border-neutral-border rounded p-1 text-[11px] outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Gender</label>
-                                <select
-                                  value={tempDepGender} onChange={(e) => setTempDepGender(e.target.value as any)}
-                                  className="w-full bg-white border border-neutral-border rounded p-1 text-[11px] outline-none"
-                                >
-                                  <option value="Male">Male</option>
-                                  <option value="Female">Female</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Date of Birth</label>
-                                <input 
-                                  type="date"
-                                  value={tempDepDob} onChange={(e) => setTempDepDob(e.target.value)}
-                                  className="w-full bg-white border border-neutral-border rounded p-1 text-[11px] outline-none"
-                                />
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={handleAddFormDependant}
-                              className="px-3 py-1 bg-primary/10 text-primary rounded text-[11px] font-bold hover:bg-primary/20 transition-all cursor-pointer block ml-auto"
-                            >
-                              + Add Dependant ({formDependants.length}/10)
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Corporate Email Address</label>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Email Address</label>
                     <input
                       type="email"
                       disabled={formEmailFillLater}
@@ -4913,6 +4810,110 @@ export default function EmployeeDirectoryView({
                       Fill up later
                     </label>
                   </div>
+                </div>
+
+                {/* Do you have dependants? */}
+                <div className="p-4 bg-zinc-50 border border-neutral-border rounded-lg space-y-4 animate-in fade-in duration-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-on-surface uppercase tracking-wider block">Do you have dependants?</span>
+                    <select
+                      value={formHasDependants} onChange={(e) => setFormHasDependants(e.target.value as any)}
+                      className="bg-white border border-neutral-border rounded p-1 text-xs focus:ring-1 focus:ring-primary outline-none"
+                    >
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+
+                  {/* Dependant list & addition if Has Dependants = Yes */}
+                  {formHasDependants === 'Yes' && (
+                    <div className="space-y-3 pt-2 border-t border-neutral-border/60 animate-in slide-in-from-top-1 duration-150">
+                      <span className="text-[11px] font-bold text-primary uppercase block">Dependants Registry (Max. 10 Pax)</span>
+
+                      {/* Dynamic List */}
+                      {formDependants.length > 0 ? (
+                        <div className="border border-neutral-border/50 rounded overflow-hidden">
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-neutral-light border-b border-neutral-border">
+                              <tr>
+                                <th className="p-2 font-bold text-on-surface-variant">Name</th>
+                                <th className="p-2 font-bold text-on-surface-variant w-24">Gender</th>
+                                <th className="p-2 font-bold text-on-surface-variant w-28">DOB</th>
+                                <th className="p-2 text-right w-12"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-border/40">
+                              {formDependants.map((dep, idx) => (
+                                <tr key={idx} className="bg-white hover:bg-neutral-light/30">
+                                  <td className="p-2 font-semibold text-on-surface">{dep.name}</td>
+                                  <td className="p-2">{dep.gender}</td>
+                                  <td className="p-2 font-mono">{formatToDDMMMYYYY(dep.dob)}</td>
+                                  <td className="p-2 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFormDependant(idx)}
+                                      className="text-error hover:text-red-700 p-1 cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-xs italic text-on-surface-variant bg-white p-3 rounded border border-neutral-border/40 text-center">
+                          No dependants added yet. Please specify details below to add.
+                        </div>
+                      )}
+
+                      {/* Interactive addition fields */}
+                      {formDependants.length < 10 && (
+                        <div className="bg-white p-3 rounded border border-neutral-border/40 space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Dependant Name</label>
+                              <input
+                                type="text"
+                                value={tempDepName}
+                                onChange={(e) => setTempDepName(toUppercase(e.target.value))}
+                                placeholder="e.g. Sally Doe"
+                                className="w-full bg-white border border-neutral-border rounded p-1 text-[11px] outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Gender</label>
+                              <select
+                                value={tempDepGender}
+                                onChange={(e) => setTempDepGender(e.target.value as any)}
+                                className="w-full bg-white border border-neutral-border rounded p-1 text-[11px] outline-none"
+                              >
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-on-surface-variant uppercase mb-1">Date of Birth</label>
+                              <input
+                                type="date"
+                                value={tempDepDob}
+                                onChange={(e) => setTempDepDob(e.target.value)}
+                                className="w-full bg-white border border-neutral-border rounded p-1 text-[11px] outline-none"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleAddFormDependant}
+                            className="px-3 py-1 bg-primary/10 text-primary rounded text-[11px] font-bold hover:bg-primary/20 transition-all cursor-pointer block ml-auto"
+                          >
+                            + Add Dependant ({formDependants.length}/10)
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* SECTION 2: Corporate & Contract Mapping */}
