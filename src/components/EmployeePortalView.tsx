@@ -41,7 +41,17 @@ import PayslipDocumentView from './PayslipDocumentView';
 import PerformanceAppraisalForm from './PerformanceAppraisalForm';
 import { formatToDDMMMYYYY, getGmt8DateString, getGmt8LongDateString, getGmt8Timestamp } from '../lib/dateUtils';
 import { calculatePayslip, calculatePayslipFromRecord, getPayrollDocumentProfile, sortPayrollRecords } from '../data';
-import { DEFAULT_LEAVE_CONFIGS, LeaveRequest, LeaveConfig } from './LeaveManagementView';
+import {
+  LeaveDataState,
+  LeaveRequestRecord,
+  calculateInclusiveDays,
+  calculateLeaveBalances,
+  calculatePolicyDeductionDays,
+  getEmployeeLeaveGroupItems,
+  leaveService,
+  makeRuntimeLeaveId,
+  mergeWithDefaultLeaveData,
+} from '../lib/leaveEngine';
 
 type PortalSection =
   | 'home'
@@ -133,6 +143,20 @@ const savePreviewEmployeeOverrides = (employeeId: string, updates: PreviewEmploy
 const currency = (value: number) =>
   value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const blankLeaveData = (entityId: string): LeaveDataState => mergeWithDefaultLeaveData(entityId, {
+  leaveTypes: [],
+  conditionPolicies: [],
+  carryoverSettings: [],
+  leaveGroups: [],
+  groupItems: [],
+  assignments: [],
+  requests: [],
+  offInLieuRequests: [],
+  offInLieuEntries: [],
+  ledger: [],
+  payrollDeductions: [],
+});
+
 export default function EmployeePortalView({
   employees,
   payrollRecords2026,
@@ -157,9 +181,8 @@ export default function EmployeePortalView({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(previewEmployeeId);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [selectedPayslip, setSelectedPayslip] = useState<{ month: number; year: number; record?: PayrollRecord2026 } | null>(null);
-  const [leaveConfigs, setLeaveConfigs] = useState<LeaveConfig[]>(DEFAULT_LEAVE_CONFIGS);
-  const [allLeaveRequests, setAllLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [leaveType, setLeaveType] = useState('Annual Leave');
+  const [leaveData, setLeaveData] = useState<LeaveDataState>(() => blankLeaveData('portal'));
+  const [leaveTypeId, setLeaveTypeId] = useState('');
   const [leaveStartDate, setLeaveStartDate] = useState(getGmt8DateString());
   const [leaveEndDate, setLeaveEndDate] = useState(getGmt8DateString());
   const [leaveReason, setLeaveReason] = useState('');
@@ -236,8 +259,6 @@ export default function EmployeePortalView({
   const selectedDependants = selectedEmployee?.dependants || [];
 
   const storagePrefix = isPreviewMode ? 'employee_portal_demo_' : 'employee_portal_';
-  const leaveStorageKey = selectedEmployee?.entityId ? `${storagePrefix}leave_requests_${selectedEmployee.entityId}` : '';
-  const leaveConfigKey = selectedEmployee?.entityId ? `${storagePrefix}leave_configs_${selectedEmployee.entityId}` : '';
   const supportStorageKey = selectedEmployee?.id ? `${storagePrefix}employee_support_requests_${selectedEmployee.id}` : '';
   const activeSectionStorageKey = `${storagePrefix}active_section`;
 
@@ -261,18 +282,20 @@ export default function EmployeePortalView({
 
   useEffect(() => {
     if (!selectedEmployee?.entityId) return;
-    const configs = readJson<LeaveConfig[]>(
-      leaveConfigKey,
-      DEFAULT_LEAVE_CONFIGS
-    );
-    const requests = readJson<LeaveRequest[]>(leaveStorageKey, []);
-    setLeaveConfigs(configs.length > 0 ? configs : DEFAULT_LEAVE_CONFIGS);
-    setAllLeaveRequests(requests);
-    setLeaveType((configs.length > 0 ? configs : DEFAULT_LEAVE_CONFIGS)[0]?.leaveType || 'Annual Leave');
+    let cancelled = false;
+    void leaveService.load(selectedEmployee.entityId).then((loaded) => {
+      if (cancelled) return;
+      setLeaveData(loaded);
+      const balances = calculateLeaveBalances(selectedEmployee.id, loaded);
+      setLeaveTypeId(balances[0]?.leaveTypeId || loaded.leaveTypes.find((type) => type.isActive)?.id || '');
+    });
     setLeaveStartDate(getGmt8DateString());
     setLeaveEndDate(getGmt8DateString());
     setLeaveReason('');
-  }, [leaveConfigKey, leaveStorageKey, selectedEmployee?.entityId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEmployee?.entityId, selectedEmployee?.id]);
 
   useEffect(() => {
     if (!selectedEmployee?.id) return;
@@ -308,32 +331,34 @@ export default function EmployeePortalView({
 
   useEffect(() => {
     if (!selectedEmployee) return;
-    const leaveTypes = leaveConfigs.length > 0 ? leaveConfigs : DEFAULT_LEAVE_CONFIGS;
-    if (!leaveTypes.some((config) => config.leaveType === leaveType)) {
-      setLeaveType(leaveTypes[0]?.leaveType || 'Annual Leave');
+    const balances = calculateLeaveBalances(selectedEmployee.id, leaveData);
+    const availableTypes = balances.length > 0
+      ? balances.map((balance) => leaveData.leaveTypes.find((type) => type.id === balance.leaveTypeId)).filter(Boolean)
+      : leaveData.leaveTypes.filter((type) => type.isActive);
+    if (!availableTypes.some((type) => type?.id === leaveTypeId)) {
+      setLeaveTypeId(availableTypes[0]?.id || '');
     }
-  }, [leaveConfigs, leaveType, selectedEmployee]);
+  }, [leaveData, leaveTypeId, selectedEmployee]);
 
   const visibleLeaveRequests = useMemo(
-    () => allLeaveRequests
+    () => leaveData.requests
       .filter((request) => request.employeeId === selectedEmployee?.id)
       .sort((left, right) => right.appliedDate.localeCompare(left.appliedDate)),
-    [allLeaveRequests, selectedEmployee?.id]
+    [leaveData.requests, selectedEmployee?.id]
   );
 
-  const annualLeaveConfig = leaveConfigs.find((config) => config.leaveType === 'Annual Leave') || leaveConfigs[0] || DEFAULT_LEAVE_CONFIGS[0];
-  const sickLeaveConfig = leaveConfigs.find((config) => config.leaveType === 'Sick Leave') || DEFAULT_LEAVE_CONFIGS[1];
-  const approvedAnnualDays = visibleLeaveRequests
-    .filter((request) => request.leaveType === annualLeaveConfig.leaveType && request.status === 'Approved')
-    .reduce((sum, request) => sum + request.totalDays, 0);
-  const pendingLeaveCount = visibleLeaveRequests.filter((request) => request.status === 'Pending').length;
-  const annualLeaveRemaining = Math.max(0, annualLeaveConfig.daysEntitled - approvedAnnualDays);
-  const sickLeaveRemaining = Math.max(
-    0,
-    sickLeaveConfig.daysEntitled - visibleLeaveRequests
-      .filter((request) => request.leaveType === sickLeaveConfig.leaveType && request.status === 'Approved')
-      .reduce((sum, request) => sum + request.totalDays, 0)
+  const leaveBalances = useMemo(
+    () => selectedEmployee ? calculateLeaveBalances(selectedEmployee.id, leaveData) : [],
+    [leaveData, selectedEmployee]
   );
+  const annualLeaveBalance = leaveBalances.find((balance) => balance.leaveType === 'Annual Leave') || leaveBalances[0];
+  const sickLeaveBalance = leaveBalances.find((balance) => balance.leaveType === 'Sick Leave') || leaveBalances[1] || leaveBalances[0];
+  const pendingLeaveCount = visibleLeaveRequests.filter((request) => request.status === 'Pending').length;
+  const annualLeaveRemaining = annualLeaveBalance?.remainingDays || 0;
+  const sickLeaveRemaining = sickLeaveBalance?.remainingDays || 0;
+  const selectableLeaveTypes = leaveBalances.length > 0
+    ? leaveBalances.map((balance) => leaveData.leaveTypes.find((type) => type.id === balance.leaveTypeId)).filter(Boolean)
+    : leaveData.leaveTypes.filter((type) => type.isActive);
 
   const profileCompleteness = useMemo(() => {
     if (!selectedEmployee) return 0;
@@ -382,13 +407,6 @@ export default function EmployeePortalView({
     '--color-neutral-border': '#d9dee2',
   } as React.CSSProperties;
 
-  const updateLeaveRequests = (next: LeaveRequest[]) => {
-    setAllLeaveRequests(next);
-    if (leaveStorageKey) {
-      saveJson(leaveStorageKey, next);
-    }
-  };
-
   const updateSupportRequests = (next: SupportRequest[]) => {
     setSupportRequests(next);
     if (supportStorageKey) {
@@ -423,7 +441,7 @@ export default function EmployeePortalView({
     }
   };
 
-  const handleSubmitLeave = (event: React.FormEvent) => {
+  const handleSubmitLeave = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedEmployee) return;
     if (!leaveReason.trim()) {
@@ -436,23 +454,45 @@ export default function EmployeePortalView({
       onShowNotification('Leave request', 'Please choose a valid leave date range.');
       return;
     }
-    const totalDays = Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    const newRequest: LeaveRequest = {
-      id: `LR-${Date.now()}`,
+    const selectedType = leaveData.leaveTypes.find((type) => type.id === leaveTypeId);
+    if (!selectedType) {
+      onShowNotification('Leave request', 'Please choose a valid leave type.');
+      return;
+    }
+    const assignedItem = getEmployeeLeaveGroupItems(selectedEmployee.id, leaveData, leaveStartDate)
+      .find((item) => item.leaveTypeId === selectedType.id);
+    const policy = assignedItem
+      ? leaveData.conditionPolicies.find((candidate) => candidate.id === assignedItem.conditionPolicyId)
+      : undefined;
+    const totalDays = calculatePolicyDeductionDays(calculateInclusiveDays(leaveStartDate, leaveEndDate), policy);
+    const newRequest: LeaveRequestRecord = {
+      id: makeRuntimeLeaveId('leave-request'),
+      entityId: selectedEmployee.entityId,
       employeeId: selectedEmployee.id,
       employeeName: selectedEmployee.name,
-      leaveType,
+      leaveTypeId: selectedType.id,
+      leaveType: selectedType.name,
       startDate: leaveStartDate,
       endDate: leaveEndDate,
       totalDays,
       reason: leaveReason.trim(),
       status: 'Pending',
       appliedDate: getGmt8DateString(),
+      source: 'employee_portal',
+      payrollSyncStatus: 'not_required',
+      createdAt: getGmt8Timestamp(),
+      updatedAt: getGmt8Timestamp(),
     };
-    const nextRequests = [newRequest, ...allLeaveRequests];
-    updateLeaveRequests(nextRequests);
+    const next = { ...leaveData, requests: [newRequest, ...leaveData.requests] };
+    setLeaveData(next);
+    await leaveService.saveState(selectedEmployee.entityId, next);
+    try {
+      await leaveService.upsert(selectedEmployee.entityId, 'requests', newRequest);
+    } catch (error) {
+      console.warn('[Employee Portal] Leave Supabase sync failed:', error);
+    }
     setLeaveReason('');
-    onShowNotification('Leave request submitted', `Your ${leaveType.toLowerCase()} request is now pending review.`);
+    onShowNotification('Leave request submitted', `Your ${selectedType.name.toLowerCase()} request is now pending review.`);
   };
 
   const handleSubmitSupport = (event: React.FormEvent) => {
@@ -1062,37 +1102,39 @@ export default function EmployeePortalView({
           <div className="rounded-2xl bg-[#fff8f1] p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-on-surface-variant">Annual leave</p>
             <p className="mt-2 text-2xl font-bold text-on-background">{annualLeaveRemaining}</p>
-            <p className="mt-1 text-xs text-on-surface-variant">of {annualLeaveConfig.daysEntitled} days remaining</p>
+            <p className="mt-1 text-xs text-on-surface-variant">of {annualLeaveBalance?.entitlementDays || 0} days remaining</p>
           </div>
           <div className="rounded-2xl bg-[#fff8f1] p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-on-surface-variant">Sick leave</p>
             <p className="mt-2 text-2xl font-bold text-on-background">{sickLeaveRemaining}</p>
-            <p className="mt-1 text-xs text-on-surface-variant">of {sickLeaveConfig.daysEntitled} days remaining</p>
+            <p className="mt-1 text-xs text-on-surface-variant">of {sickLeaveBalance?.entitlementDays || 0} days remaining</p>
           </div>
         </div>
 
         <div className="mt-6 space-y-3">
-          {leaveConfigs.map((config) => {
-            const taken = visibleLeaveRequests
-              .filter((request) => request.leaveType === config.leaveType && request.status === 'Approved')
-              .reduce((sum, request) => sum + request.totalDays, 0);
-            return (
-              <div key={config.id} className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+          {leaveBalances.length > 0 ? leaveBalances.map((balance) => (
+              <div key={balance.leaveTypeId} className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-on-background">{config.leaveType}</p>
-                    <p className="text-xs text-on-surface-variant">{config.condition}</p>
+                    <p className="font-semibold text-on-background">{balance.leaveType}</p>
+                    <p className="text-xs text-on-surface-variant">
+                      {balance.remainingDays} day(s) remaining · {balance.pendingDays} pending
+                    </p>
                   </div>
                   <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.35em] text-primary">
-                    {config.daysEntitled} days
+                    {(balance.entitlementDays + balance.carriedForwardDays + balance.creditedDays).toFixed(1)} days
                   </span>
                 </div>
                 <p className="mt-3 text-xs text-on-surface-variant">
-                  {taken} approved day{taken === 1 ? '' : 's'} taken
+                  {balance.takenDays} approved day{balance.takenDays === 1 ? '' : 's'} taken
+                  {balance.creditedDays > 0 ? ` · ${balance.creditedDays} replacement/adjustment credit` : ''}
                 </p>
               </div>
-            );
-          })}
+          )) : (
+            <div className="rounded-3xl border border-dashed border-neutral-border bg-white p-8 text-center text-sm text-on-surface-variant">
+              No leave group has been assigned yet.
+            </div>
+          )}
         </div>
       </section>
 
@@ -1103,13 +1145,13 @@ export default function EmployeePortalView({
             <label className="space-y-2">
               <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Leave type</span>
               <select
-                value={leaveType}
-                onChange={(event) => setLeaveType(event.target.value)}
+                value={leaveTypeId}
+                onChange={(event) => setLeaveTypeId(event.target.value)}
                 className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none focus:border-primary"
               >
-                {leaveConfigs.map((config) => (
-                  <option key={config.id} value={config.leaveType}>
-                    {config.leaveType}
+                {selectableLeaveTypes.map((type) => type && (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
                   </option>
                 ))}
               </select>

@@ -42,6 +42,7 @@ import { getGmt8Timestamp, getGmt8DateString } from './lib/dateUtils';
 import { formatNricOrPassport } from './lib/employeeInput';
 import { getAppTabFromPath, getPathForAppTab } from './lib/appRoutes';
 import { isAdminPortalRole, isEmployeePortalRole } from './lib/userRoles';
+import type { LeavePayrollDeduction } from './lib/leaveEngine';
 
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
@@ -1855,6 +1856,97 @@ export default function App() {
     setPayrollRecords2026(prev => mergePayrollRecords2026(prev, recordToSave));
   };
 
+  const handleSyncLeavePayrollDeduction = async (deduction: LeavePayrollDeduction) => {
+    const employee = employees.find(e => e.id === deduction.employeeId || e.email?.toLowerCase() === deduction.employeeEmail.toLowerCase());
+    if (!employee) {
+      throw new Error(`Employee not found for leave payroll deduction ${deduction.id}.`);
+    }
+
+    const existingRecord = payrollRecords2026.find(record => (
+      !isSeparatePayrollRecord(record) &&
+      record.employeeEmail.toLowerCase() === employee.email.toLowerCase() &&
+      record.payrollMonth === deduction.payrollMonth &&
+      record.payrollYear === deduction.payrollYear
+    ));
+    const cleanEmployeeKey = employee.email.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const lastDay = new Date(deduction.payrollYear, deduction.payrollMonth, 0).getDate();
+    const baseRecord: PayrollRecord2026 = existingRecord || {
+      id: `${cleanEmployeeKey}_${deduction.payrollYear}_${String(deduction.payrollMonth).padStart(2, '0')}`,
+      employeeEmail: employee.email,
+      payrollMonth: deduction.payrollMonth,
+      payrollYear: deduction.payrollYear,
+      paymentDate: `${deduction.payrollYear}-${String(deduction.payrollMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+      basicSalary: employee.basicSalary || 0,
+      allowanceGeneral: employee.allowanceGeneral || 0,
+      allowanceTransport: employee.allowanceTransport || 0,
+      allowanceParking: employee.allowanceParking || 0,
+      allowanceMeal: employee.allowanceMeal || 0,
+      allowanceAccommodation: employee.allowanceAccommodation || 0,
+      allowancePhone: employee.allowancePhone || 0,
+      overtime: employee.overtime || 0,
+      bonusAmount: employee.bonusAmount || 0,
+      bonusDesc: employee.bonusDesc,
+      commissionAmount: employee.commissionAmount || 0,
+      commissionDesc: employee.commissionDesc,
+      backPayAmount: employee.backPayAmount || 0,
+      backPayDesc: employee.backPayDesc,
+      awsAmount: employee.awsAmount || 0,
+      awsDesc: employee.awsDesc,
+      compensationAmount: employee.compensationAmount || 0,
+      compensationDesc: employee.compensationDesc,
+      reimbursementAmount: employee.reimbursementAmount || 0,
+      reimbursementDesc: employee.reimbursementDesc,
+      unpaidLeave: 0,
+      deductionInLieu: employee.deductionInLieu || 0,
+      deductionCp38: employee.deductionCp38 || 0,
+      deductionOthers: employee.deductionOthers || 0,
+      deductionOthersDesc: employee.deductionOthersDesc,
+      payslipDescriptions: employee.payslipDescriptions,
+      payoutKind: 'regular',
+      isSeparatePayout: false,
+      lineNotes: {},
+      documentType: getPayrollDocumentProfile(employee).documentType,
+      compensationLabel: getPayrollDocumentProfile(employee).compensationLabel,
+      displaySettingsSnapshot: getPayrollDocumentDisplaySettings(employee),
+      actualPCBDeducted: 0,
+      epfEmployee: 0,
+      epfEmployer: 0,
+      socsoEmployee: 0,
+      socsoEmployer: 0,
+      lindung24Employee: 0,
+      eisEmployee: 0,
+      eisEmployer: 0,
+      hrdCorp: 0,
+      netPay: 0,
+      createdAt: getGmt8Timestamp()
+    };
+
+    const existingNote = baseRecord.lineNotes?.unpaidLeave ? `${baseRecord.lineNotes.unpaidLeave}\n` : '';
+    const recordWithDeduction: PayrollRecord2026 = {
+      ...baseRecord,
+      unpaidLeave: Number((Number(baseRecord.unpaidLeave || 0) + deduction.deductionAmount).toFixed(2)),
+      lineNotes: {
+        ...(baseRecord.lineNotes || {}),
+        unpaidLeave: `${existingNote}Auto-synced from leave request ${deduction.leaveRequestId}: ${deduction.deductionDays} day(s) x RM ${deduction.dailyRate.toFixed(2)}.`
+      },
+      createdAt: baseRecord.createdAt || getGmt8Timestamp()
+    };
+    const recalculated = calculatePayslipFromRecord(employee, recordWithDeduction);
+    await handleSavePayrollRecord2026({
+      ...recordWithDeduction,
+      actualPCBDeducted: recalculated.taxPcbVal,
+      epfEmployee: recalculated.epfEmployeeValue,
+      epfEmployer: recalculated.epfEmployerValue,
+      socsoEmployee: recalculated.socsoEmployeeVal,
+      socsoEmployer: recalculated.socsoEmployerVal,
+      lindung24Employee: recalculated.skbbkEmpVal,
+      eisEmployee: recalculated.eisEmployeeVal,
+      eisEmployer: recalculated.eisEmployerVal,
+      hrdCorp: recalculated.hrdCorpVal,
+      netPay: recalculated.netPay
+    });
+  };
+
   const handleSavePerformance = async (updatedPerf: EmployeePerformance) => {
     setPerformances(prev => {
       const exists = prev.some(p => p.employeeId === updatedPerf.employeeId && p.reviewCycleId === updatedPerf.reviewCycleId);
@@ -2535,6 +2627,7 @@ export default function App() {
               employees={filteredEmployees}
               onShowNotification={triggerNotification}
               activeEntityId={activeEntityId}
+              onSyncLeavePayrollDeduction={handleSyncLeavePayrollDeduction}
             />
           )}
 
