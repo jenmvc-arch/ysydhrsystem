@@ -2836,7 +2836,7 @@ export default function EmployeeDirectoryView({
 
             {/* Directory spreadsheet grid */}
             <div className="overflow-x-auto overscroll-x-contain">
-              <table className="w-max min-w-[2550px] text-left border-collapse text-xs whitespace-nowrap">
+              <table className="w-max min-w-[2440px] text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
                   <tr className="bg-surface-container-low border-b border-neutral-border text-on-surface-variant font-bold uppercase tracking-wider select-none">
                     <th className="min-w-[330px] p-4 whitespace-nowrap">Personnel Info</th>
@@ -2846,7 +2846,7 @@ export default function EmployeeDirectoryView({
                     <th className="min-w-[200px] p-4 whitespace-nowrap">Type of Employment</th>
                     <th className="min-w-[170px] p-4 whitespace-nowrap">Type of Payslip</th>
                     <th className="min-w-[150px] p-4 whitespace-nowrap">Basic Salary (RM)</th>
-                    <th className="min-w-[280px] p-4 whitespace-nowrap">Allowances</th>
+                    <th className="min-w-[170px] p-4 whitespace-nowrap">Allowances</th>
                     <th className="min-w-[160px] p-4 whitespace-nowrap">Date of Joined</th>
                     <th className="min-w-[200px] p-4 whitespace-nowrap">Status</th>
                     <th className="min-w-[190px] p-4 whitespace-nowrap">Account Access</th>
@@ -2950,9 +2950,9 @@ export default function EmployeeDirectoryView({
                         </td>
 
                         {/* Column 8: Allowances */}
-                        <td className="min-w-[280px] p-4 align-middle">
+                        <td className="min-w-[170px] p-4 align-middle">
                           {displayedAllowances.length > 0 ? (
-                            <div className="flex flex-wrap gap-x-5 gap-y-2">
+                            <div className="flex w-max flex-wrap gap-x-5 gap-y-2">
                               {displayedAllowances.map(allowance => (
                                 <div key={allowance.label} className="whitespace-nowrap">
                                   <div className="font-mono text-xs font-semibold text-on-surface">
