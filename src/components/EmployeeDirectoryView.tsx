@@ -2952,13 +2952,15 @@ export default function EmployeeDirectoryView({
                         {/* Column 8: Allowances */}
                         <td className="min-w-[280px] p-4 align-middle">
                           {displayedAllowances.length > 0 ? (
-                            <div className="space-y-1">
+                            <div className="flex flex-wrap gap-x-5 gap-y-2">
                               {displayedAllowances.map(allowance => (
-                                <div key={allowance.label} className="flex items-center justify-between gap-4 whitespace-nowrap">
-                                  <span className="text-[10px] font-semibold text-on-surface-variant">{allowance.label}</span>
-                                  <span className="font-mono text-xs font-semibold text-on-surface">
+                                <div key={allowance.label} className="whitespace-nowrap">
+                                  <div className="font-mono text-xs font-semibold text-on-surface">
                                     RM {formatCurrencyAmount(allowance.amount)}
-                                  </span>
+                                  </div>
+                                  <div className="mt-0.5 text-[10px] font-semibold text-on-surface-variant">
+                                    ({allowance.label})
+                                  </div>
                                 </div>
                               ))}
                             </div>
