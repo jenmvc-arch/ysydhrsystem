@@ -4661,6 +4661,17 @@ export default function EmployeeDirectoryView({
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nationality *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNationality}
+                      onChange={(e) => setFormNationality(toUppercase(e.target.value))}
+                      placeholder="e.g. Malaysian"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">NRIC / Passport Number *</label>
                     <input 
                       type="text" required
@@ -4674,17 +4685,29 @@ export default function EmployeeDirectoryView({
                       className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Nationality *</label>
-                    <input 
-                      type="text" required
-                      value={formNationality} onChange={(e) => setFormNationality(toUppercase(e.target.value))}
-                      placeholder="e.g. Malaysian"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      disabled={formEmailFillLater}
+                      value={formEmailFillLater ? '' : formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                      placeholder="j.cooper@enterprise.com"
+                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none disabled:bg-neutral-100"
                     />
+                    <label className="mt-1.5 flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formEmailFillLater}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormEmailFillLater(checked);
+                          if (checked) setFormEmail('');
+                        }}
+                        className="h-3.5 w-3.5 rounded accent-primary"
+                      />
+                      Fill up later
+                    </label>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Contact Number</label>
@@ -4784,33 +4807,6 @@ export default function EmployeeDirectoryView({
                     )}
                   </div>
                 )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      disabled={formEmailFillLater}
-                      value={formEmailFillLater ? '' : formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
-                      placeholder="j.cooper@enterprise.com"
-                      className="w-full bg-white border border-neutral-border rounded p-2 text-xs focus:ring-1 focus:ring-primary outline-none disabled:bg-neutral-100"
-                    />
-                    <label className="mt-1.5 flex items-center gap-2 text-[10px] font-semibold text-on-surface-variant cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formEmailFillLater}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setFormEmailFillLater(checked);
-                          if (checked) setFormEmail('');
-                        }}
-                        className="h-3.5 w-3.5 rounded accent-primary"
-                      />
-                      Fill up later
-                    </label>
-                  </div>
-                </div>
 
                 {/* Do you have dependants? */}
                 <div className="p-4 bg-zinc-50 border border-neutral-border rounded-lg space-y-4 animate-in fade-in duration-200">
