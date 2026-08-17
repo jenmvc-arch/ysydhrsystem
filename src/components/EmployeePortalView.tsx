@@ -29,6 +29,7 @@ import {
   Clock3,
   Plus,
   Trash2,
+  Pencil,
   FileDown,
   ExternalLink,
   ClipboardList,
@@ -206,6 +207,7 @@ export default function EmployeePortalView({
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(previewEmployeeId);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [selectedPayslip, setSelectedPayslip] = useState<{ month: number; year: number; record?: PayrollRecord2026 } | null>(null);
   const [leaveData, setLeaveData] = useState<LeaveDataState>(() => blankLeaveData('portal'));
   const [leaveTypeId, setLeaveTypeId] = useState('');
@@ -391,6 +393,7 @@ export default function EmployeePortalView({
       hasDependants: selectedEmployee.hasDependants || (dependants.length > 0 ? 'Yes' : 'No'),
       dependants,
     });
+    setIsEditingProfile(false);
   }, [isPreviewMode, selectedEmployee?.id]);
 
   useEffect(() => {
@@ -483,7 +486,7 @@ export default function EmployeePortalView({
   };
 
   const handleSaveProfile = async () => {
-    if (!selectedEmployee) return;
+    if (!selectedEmployee || !isEditingProfile) return;
     setIsSavingProfile(true);
     try {
       const savedDependants = profileDraft.hasDependants === 'Yes'
@@ -522,6 +525,7 @@ export default function EmployeePortalView({
       } else {
         await onUpdateEmployee(selectedEmployee.id, profileUpdates);
       }
+      setIsEditingProfile(false);
       onShowNotification('Profile Updated', 'Your contact, bank, statutory, and family details were saved.');
     } catch (error) {
       console.error('[Employee Portal] Profile save failed:', error);
@@ -529,6 +533,41 @@ export default function EmployeePortalView({
     } finally {
       setIsSavingProfile(false);
     }
+  };
+
+  const handleCancelProfileEdit = () => {
+    if (!selectedEmployee) return;
+    let dependants: Dependant[] = [];
+    if (Array.isArray(selectedEmployee.dependants)) {
+      dependants = selectedEmployee.dependants;
+    } else if (typeof selectedEmployee.dependants === 'string' && selectedEmployee.dependants) {
+      try {
+        const parsed = JSON.parse(selectedEmployee.dependants);
+        if (Array.isArray(parsed)) dependants = parsed;
+      } catch (_error) {
+        dependants = [];
+      }
+    }
+    setProfileDraft({
+      contactNumber: selectedEmployee.contactNumber || '',
+      emergencyContactName: selectedEmployee.emergencyContactName || '',
+      emergencyContactRelation: selectedEmployee.emergencyContactRelation || '',
+      emergencyContactPhone: selectedEmployee.emergencyContactPhone || '',
+      avatarUrl: selectedEmployee.avatarUrl || '',
+      bankName: selectedEmployee.bankName || '',
+      accountNo: selectedEmployee.accountNo || '',
+      taxNumber: selectedEmployee.taxNumber || '',
+      epfNumber: selectedEmployee.epfNumber || '',
+      maritalStatus: selectedEmployee.maritalStatus || 'Single',
+      spouseName: selectedEmployee.spouseName || '',
+      spouseNric: selectedEmployee.spouseNric || '',
+      spouseIsWorking: selectedEmployee.spouseIsWorking || 'No',
+      spouseCompany: selectedEmployee.spouseCompany || '',
+      spousePosition: selectedEmployee.spousePosition || '',
+      hasDependants: selectedEmployee.hasDependants || (dependants.length > 0 ? 'Yes' : 'No'),
+      dependants,
+    });
+    setIsEditingProfile(false);
   };
 
   const addProfileDependant = () => {
@@ -956,13 +995,35 @@ export default function EmployeePortalView({
             <h2 className="text-xl font-bold text-on-background">My Profile</h2>
             <p className="text-xs text-on-surface-variant">Update your contact, bank, statutory, and family details.</p>
           </div>
-          <button
-            onClick={handleSaveProfile}
-            disabled={isSavingProfile}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
-          >
-            {isSavingProfile ? 'Saving...' : 'Save changes'}
-          </button>
+          {isEditingProfile ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCancelProfileEdit}
+                disabled={isSavingProfile}
+                className="inline-flex items-center gap-2 rounded-xl border border-neutral-border bg-white px-4 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                disabled={isSavingProfile}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-70"
+              >
+                {isSavingProfile ? 'Saving...' : 'Save changes'}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsEditingProfile(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit profile
+            </button>
+          )}
         </div>
 
         <div className="mt-6 space-y-5">
@@ -982,7 +1043,7 @@ export default function EmployeePortalView({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <fieldset disabled={!isEditingProfile} className={`grid min-w-0 gap-4 border-0 p-0 md:grid-cols-2 ${isEditingProfile ? '' : 'opacity-80'}`}>
             <label className="space-y-2">
               <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Mobile number</span>
               <input
@@ -1059,7 +1120,7 @@ export default function EmployeePortalView({
                 className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
               />
             </label>
-          </div>
+          </fieldset>
 
           <div className="rounded-3xl border border-neutral-border bg-surface-container-low p-5">
             <div className="flex items-center gap-2 text-primary">
@@ -1106,7 +1167,7 @@ export default function EmployeePortalView({
             <Heart className="h-5 w-5 text-primary" />
           </div>
 
-          <div className="mt-5 space-y-4 text-sm">
+          <fieldset disabled={!isEditingProfile} className={`mt-5 min-w-0 space-y-4 border-0 p-0 text-sm ${isEditingProfile ? '' : 'opacity-80'}`}>
             <label className="space-y-2">
               <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Marital status</span>
               <select
@@ -1264,7 +1325,7 @@ export default function EmployeePortalView({
                 </div>
               )}
             </div>
-          </div>
+          </fieldset>
         </div>
 
         <div className={`${cardClass} p-6`}>
