@@ -596,8 +596,7 @@ export default function EmployeePortalView({
           <img src="/redpoint-logo.png" alt="YSYD HRMS Logo" className="h-full w-full object-contain" />
         </div>
         <div className="text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#524533]">YSYD HRMS</p>
-          <p className="mt-1 text-[11px] font-semibold text-[#171c1f]">{portalCompanyName}</p>
+          <p className="text-[11px] font-semibold text-[#171c1f]">{portalCompanyName}</p>
         </div>
       </div>
 
