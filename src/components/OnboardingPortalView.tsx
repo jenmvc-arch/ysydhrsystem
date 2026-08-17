@@ -61,6 +61,7 @@ interface OnboardingPortalViewProps {
   onShowNotification: (title: string, message: string) => void;
   onUpdateCandidate?: (id: string, updates: Partial<Candidate>) => Promise<void> | void;
   onUpdateEmployee?: (id: string, updates: Partial<Employee>) => Promise<void> | void;
+  embeddedEmployeeMode?: boolean;
 }
 
 const PORTAL_NAV_ITEMS: Array<{
@@ -112,9 +113,11 @@ function OnboardingPortalContent({
   onShowNotification,
   onUpdateCandidate,
   onUpdateEmployee,
+  embeddedEmployeeMode = false,
 }: OnboardingPortalViewProps) {
   // Role View Mode: default to HR Admin if currentUserRole is admin/hr, else employee
   const [viewRole, setViewRole] = useState<ViewRole>(() => {
+    if (embeddedEmployeeMode) return 'employee';
     const r = (currentUserRole || '').toLowerCase();
     if (r.includes('admin') || r.includes('hr') || r.includes('manager')) {
       return 'hr-admin';
@@ -145,6 +148,12 @@ function OnboardingPortalContent({
   // Test Onboarding Modal state
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [adminCandidateSearch, setAdminCandidateSearch] = useState('');
+
+  useEffect(() => {
+    if (embeddedEmployeeMode && viewRole !== 'employee') {
+      setViewRole('employee');
+    }
+  }, [embeddedEmployeeMode, viewRole]);
 
   useEffect(() => {
     if (
@@ -511,47 +520,51 @@ function OnboardingPortalContent({
         {/* View Mode Toggle & Utility Controls */}
         <div className="flex flex-wrap items-center gap-3">
           {/* View Role Switcher Buttons */}
-          <div className="inline-flex rounded-lg border border-neutral-border bg-white p-1 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setViewRole('employee')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                viewRole === 'employee'
-                  ? 'bg-primary text-white shadow-xs'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-neutral-50'
-              }`}
-            >
-              <UserRoundCheck className="w-3.5 h-3.5" />
-              <span>Employee View</span>
-            </button>
+          {!embeddedEmployeeMode && (
+            <div className="inline-flex rounded-lg border border-neutral-border bg-white p-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewRole('employee')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  viewRole === 'employee'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-neutral-50'
+                }`}
+              >
+                <UserRoundCheck className="w-3.5 h-3.5" />
+                <span>Employee View</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setViewRole('hr-admin')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                viewRole === 'hr-admin'
-                  ? 'bg-primary text-white shadow-xs'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-neutral-50'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>HR Admin View</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setViewRole('hr-admin')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  viewRole === 'hr-admin'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-neutral-50'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>HR Admin View</span>
+              </button>
+            </div>
+          )}
 
           {/* Test Onboarding Action Button */}
-          <button
-            type="button"
-            onClick={() => setIsTestModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold border border-purple-200 bg-purple-50 text-purple-900 rounded-lg hover:bg-purple-100 transition-all cursor-pointer shadow-2xs"
-            title="Open Onboarding Simulation and Audit Sandbox"
-          >
-            <FlaskConical className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
-            <span>Test Onboarding</span>
-          </button>
+          {!embeddedEmployeeMode && (
+            <button
+              type="button"
+              onClick={() => setIsTestModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold border border-purple-200 bg-purple-50 text-purple-900 rounded-lg hover:bg-purple-100 transition-all cursor-pointer shadow-2xs"
+              title="Open Onboarding Simulation and Audit Sandbox"
+            >
+              <FlaskConical className="w-3.5 h-3.5 text-purple-700 animate-pulse" />
+              <span>Test Onboarding</span>
+            </button>
+          )}
 
           {/* Candidate Switcher Dropdown */}
-          {candidates.length > 0 && (
+          {!embeddedEmployeeMode && candidates.length > 0 && (
             <label className="flex items-center gap-2 text-xs font-bold text-on-surface">
               <span className="sr-only">Employee journey</span>
               <select
@@ -576,7 +589,7 @@ function OnboardingPortalContent({
       {/* ========================================================================= */}
       {/* HR ADMIN EXECUTIVE AUDIT OVERVIEW BAR (Visible in HR Admin View) */}
       {/* ========================================================================= */}
-      {viewRole === 'hr-admin' && (
+      {!embeddedEmployeeMode && viewRole === 'hr-admin' && (
         <div className="p-4 sm:p-5 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
@@ -734,7 +747,7 @@ function OnboardingPortalContent({
             </div>
 
             {/* HR Admin Candidate Management List (if in HR admin view) */}
-            {viewRole === 'hr-admin' && (
+            {!embeddedEmployeeMode && viewRole === 'hr-admin' && (
               <div className="mt-8 bg-white rounded-xl border border-neutral-border p-5 space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
@@ -943,11 +956,13 @@ function OnboardingPortalContent({
       {/* ========================================================================= */}
       {/* TEST ONBOARDING MODAL (Simulation & Audit Tutorial) */}
       {/* ========================================================================= */}
-      <TestOnboardingModal
-        isOpen={isTestModalOpen}
-        onClose={() => setIsTestModalOpen(false)}
-        onShowNotification={onShowNotification}
-      />
+      {!embeddedEmployeeMode && (
+        <TestOnboardingModal
+          isOpen={isTestModalOpen}
+          onClose={() => setIsTestModalOpen(false)}
+          onShowNotification={onShowNotification}
+        />
+      )}
     </div>
   );
 }

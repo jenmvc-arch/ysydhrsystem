@@ -13,8 +13,6 @@ import {
   FileText,
   LifeBuoy,
   Menu,
-  X,
-  Bell,
   ChevronRight,
   ArrowUpRight,
   Download,
@@ -26,16 +24,14 @@ import {
   Phone,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle,
   BriefcaseBusiness,
   Sparkles,
   Clock3,
-  Plus,
   FileDown,
   ExternalLink,
   ClipboardList,
 } from 'lucide-react';
-import { Employee, EmployeePerformance, CorporateEntity, PayrollRecord2026, ReviewCycle } from '../types';
+import { Candidate, Employee, EmployeePerformance, CorporateEntity, PayrollRecord2026, ReviewCycle } from '../types';
 import EmployeeAvatar from './EmployeeAvatar';
 import PayslipDocumentView from './PayslipDocumentView';
 import PerformanceAppraisalForm from './PerformanceAppraisalForm';
@@ -53,11 +49,14 @@ import {
   mergeWithDefaultLeaveData,
 } from '../lib/leaveEngine';
 
+const OnboardingPortalView = React.lazy(() => import('./OnboardingPortalView'));
+
 type PortalSection =
   | 'home'
   | 'profile'
   | 'payslips'
   | 'leave'
+  | 'onboarding'
   | 'growth'
   | 'documents'
   | 'support';
@@ -77,6 +76,7 @@ interface EmployeePortalViewProps {
   employees: Employee[];
   payrollRecords2026: PayrollRecord2026[];
   entities: CorporateEntity[];
+  candidates: Candidate[];
   performances: EmployeePerformance[];
   reviewCycles: ReviewCycle[];
   currentUserName?: string | null;
@@ -84,6 +84,7 @@ interface EmployeePortalViewProps {
   currentUserRole?: string | null;
   onShowNotification: (title: string, message: string) => void;
   onUpdateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
+  onUpdateCandidate?: (id: string, updates: Partial<Candidate>) => Promise<void> | void;
   onSavePerformance: (performance: EmployeePerformance) => void;
   onSignOut: () => void;
   isPreviewMode?: boolean;
@@ -99,6 +100,7 @@ const PORTAL_NAV_ITEMS: Array<{
   { id: 'profile', label: 'My Profile', icon: User },
   { id: 'payslips', label: 'Payslips', icon: Wallet },
   { id: 'leave', label: 'Leave', icon: CalendarDays },
+  { id: 'onboarding', label: 'Onboarding', icon: ClipboardList },
   { id: 'growth', label: 'Performance & Appraisal', icon: TrendingUp },
   { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'support', label: 'Support', icon: LifeBuoy },
@@ -161,6 +163,7 @@ export default function EmployeePortalView({
   employees,
   payrollRecords2026,
   entities,
+  candidates,
   performances,
   reviewCycles,
   currentUserName,
@@ -168,6 +171,7 @@ export default function EmployeePortalView({
   currentUserRole,
   onShowNotification,
   onUpdateEmployee,
+  onUpdateCandidate,
   onSavePerformance,
   onSignOut,
   isPreviewMode = false,
@@ -214,10 +218,17 @@ export default function EmployeePortalView({
     return employeeFromSession || null;
   }, [employees, employeeFromSession, isPreviewMode, selectedEmployeeId]);
 
+  const onboardingCandidates = useMemo(() => {
+    const employeeEmail = String(selectedEmployee?.email || '').toLowerCase();
+    if (!employeeEmail) return [];
+    return candidates.filter((candidate) => String(candidate.email || '').toLowerCase() === employeeEmail);
+  }, [candidates, selectedEmployee?.email]);
+
   const employeeEntity = useMemo(
     () => entities.find((entity) => entity.id === selectedEmployee?.entityId) || entities[0] || null,
     [entities, selectedEmployee?.entityId]
   );
+  const portalCompanyName = employeeEntity?.name || 'YSYD HRMS';
 
   const employeePayrollHistory = useMemo(() => {
     if (!selectedEmployee) return [];
@@ -379,7 +390,6 @@ export default function EmployeePortalView({
     request.appliedDate.startsWith(getGmt8DateString().slice(0, 7))
   );
 
-  const openSupportCount = supportRequests.filter((request) => request.status !== 'Resolved').length;
   const performanceRating = selectedPerformance?.reviewStatus === 'Completed' && selectedPerformance.rating > 0
     ? selectedPerformance.rating.toFixed(1)
     : '—';
@@ -391,6 +401,8 @@ export default function EmployeePortalView({
     '--color-secondary': '#5f5e5e',
     '--color-secondary-container': '#e5e2e1',
     '--color-on-secondary-container': '#474646',
+    '--color-tertiary': '#c00018',
+    '--color-on-tertiary': '#ffffff',
     '--color-background': '#f5fafe',
     '--color-on-background': '#171c1f',
     '--color-surface': '#ffffff',
@@ -403,8 +415,11 @@ export default function EmployeePortalView({
     '--color-on-surface-variant': '#524533',
     '--color-outline': '#857461',
     '--color-outline-variant': '#d7c3ad',
+    '--color-error': '#ba1a1a',
     '--color-parchment': '#f5fafe',
     '--color-neutral-border': '#d9dee2',
+    '--color-inverse-surface': '#2c3134',
+    '--color-inverse-on-surface': '#ecf1f5',
   } as React.CSSProperties;
 
   const updateSupportRequests = (next: SupportRequest[]) => {
@@ -530,19 +545,26 @@ export default function EmployeePortalView({
   };
 
   const currentSectionTitle = PORTAL_NAV_ITEMS.find((item) => item.id === activeSection)?.label || 'Home';
+  const employeeInitials = (selectedEmployee?.name || 'Employee Portal')
+    .split(' ')
+    .map((namePart) => namePart[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+  const employeeMetaLine = [selectedEmployee?.department, selectedEmployee?.designation].filter(Boolean).join(' · ') || 'Employee Portal';
 
   const tabButtonClass = (section: PortalSection) => [
-    'w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-left border transition-all duration-200',
+    'w-full flex items-center gap-3 px-4 py-2 rounded text-left text-[11px] font-semibold transition-all duration-150',
     activeSection === section
-      ? 'border-white/70 bg-white text-primary shadow-[0_14px_30px_rgba(163,38,38,0.12)]'
-      : 'border-white/10 bg-white/5 text-white/85 hover:bg-white/12 hover:text-white',
+      ? 'bg-white/10 text-inverse-on-surface border-l-4 border-primary-container'
+      : 'text-inverse-on-surface/75 hover:bg-white/5 hover:text-inverse-on-surface',
   ].join(' ');
 
-  const cardClass = 'rounded-3xl border border-neutral-border bg-white/90 shadow-[0_18px_40px_rgba(53,24,18,0.05)] backdrop-blur-sm';
+  const cardClass = 'rounded-lg border border-neutral-border bg-surface-container-lowest shadow-sm';
 
   if (!selectedEmployee) {
     return (
-      <div className="min-h-screen bg-[#f7f1ea] flex items-center justify-center p-6 text-left" style={portalTheme}>
+      <div className="flex min-h-screen items-center justify-center bg-background p-6 text-left" style={portalTheme}>
         <div className={`${cardClass} max-w-lg w-full p-8 space-y-4`}>
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
@@ -568,34 +590,37 @@ export default function EmployeePortalView({
   }
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-inverse-surface text-inverse-on-surface p-5">
-      <div className="mb-6 rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_12px_24px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 overflow-hidden rounded-2xl">
-            <img src="/redpoint-logo.png" alt="YSYD HRMS" className="h-full w-full object-contain" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.35em] text-white/60">Employee Portal</p>
-            <p className="truncate text-sm font-semibold">{employeeEntity?.name || 'Company not configured'}</p>
-          </div>
+    <div className="flex h-full flex-col bg-inverse-surface py-6 text-inverse-on-surface">
+      <div className="mx-3 mb-6 flex flex-col items-center gap-3 rounded-lg border border-white/10 bg-[#DEE3E7] p-4">
+        <div className="flex h-12 w-36 items-center justify-center overflow-hidden rounded">
+          <img src="/redpoint-logo.png" alt="YSYD HRMS Logo" className="h-full w-full object-contain" />
+        </div>
+        <div className="text-center">
+          <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#524533]">YSYD HRMS</p>
+          <p className="mt-1 text-[11px] font-semibold text-[#171c1f]">{portalCompanyName}</p>
         </div>
       </div>
 
-      <div className="mb-5 rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_12px_24px_rgba(0,0,0,0.08)]">
+      <div className="mx-4 mb-5 rounded-lg border border-white/10 bg-white/8 p-4 shadow-[0_12px_24px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-3">
-          <EmployeeAvatar employee={selectedEmployee} className="h-12 w-12 rounded-2xl" />
+          <EmployeeAvatar employee={selectedEmployee} className="h-11 w-11 rounded-xl" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{selectedEmployee.name}</p>
-            <p className="truncate text-[11px] text-white/70">{selectedEmployee.designation}</p>
+            <p className="truncate text-xs font-semibold">{selectedEmployee.name}</p>
+            <p className="truncate text-[10px] text-inverse-on-surface/70">{selectedEmployee.department || 'Department'} · {selectedEmployee.designation || 'Designation'}</p>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/70">
+        <div className="mt-3 flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-inverse-on-surface/70">
           <ShieldCheck className="h-3.5 w-3.5" />
           {isPreviewMode ? 'Preview mode' : 'Secure account'}
         </div>
       </div>
 
-      <nav className="space-y-2">
+      <nav className="flex-1 space-y-4 overflow-y-auto px-2 style-scrollbar">
+        <div>
+          <div className="mb-1 px-4 py-1 text-[9px] font-bold uppercase tracking-widest text-inverse-on-surface/45">
+            Employee Workspace
+          </div>
+          <div className="space-y-0.5">
         {PORTAL_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
@@ -607,21 +632,23 @@ export default function EmployeePortalView({
               }}
               className={tabButtonClass(item.id)}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="text-sm font-semibold tracking-[0.01em]">{item.label}</span>
+              <Icon className={`h-3.5 w-3.5 shrink-0 ${activeSection === item.id ? 'text-primary-container' : 'text-inverse-on-surface/75'}`} />
+              <span>{item.label}</span>
             </button>
           );
         })}
+          </div>
+        </div>
       </nav>
 
-      <div className="mt-auto space-y-3 pt-6">
+      <div className="mt-auto space-y-3 border-t border-white/10 px-4 pt-4">
         <button
           onClick={onSignOut}
-          className="w-full rounded-xl border border-white/15 bg-white/8 px-4 py-3 text-left text-sm font-semibold text-white/90 transition-colors hover:bg-white/12"
+          className="w-full rounded border border-white/15 bg-white/8 px-4 py-2 text-left text-xs font-semibold text-inverse-on-surface/90 transition-colors hover:bg-white/12"
         >
           Sign out
         </button>
-        <p className="text-[10px] leading-relaxed text-white/55">
+        <p className="text-[10px] leading-relaxed text-inverse-on-surface/55">
           Need help? Use the Support tab to raise a request with HR.
         </p>
       </div>
@@ -642,7 +669,7 @@ export default function EmployeePortalView({
                 Good day, {selectedEmployee.name.split(' ')[0]}.
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
-                Here&apos;s your personal view of payroll, leave, performance, and support in one calm workspace.
+                Here&apos;s your personal view of payroll, leave, onboarding, handbook, performance, and support in one workspace.
               </p>
             </div>
 
@@ -662,6 +689,13 @@ export default function EmployeePortalView({
                 Apply for leave
               </button>
               <button
+                onClick={() => setActiveSection('onboarding')}
+                className="inline-flex items-center gap-2 rounded-xl border border-neutral-border bg-white px-4 py-2.5 text-sm font-semibold text-on-surface"
+              >
+                <ClipboardList className="h-4 w-4 text-primary" />
+                Continue onboarding
+              </button>
+              <button
                 onClick={() => setActiveSection('support')}
                 className="inline-flex items-center gap-2 rounded-xl border border-neutral-border bg-white px-4 py-2.5 text-sm font-semibold text-on-surface"
               >
@@ -672,7 +706,7 @@ export default function EmployeePortalView({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-[#fff8f1] p-4">
+            <div className="rounded-2xl bg-surface-container-low p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-on-surface-variant">Latest pay</p>
               <p className="mt-2 text-2xl font-bold text-on-background">
                 RM {latestPayrollBreakdown ? currency(latestPayrollBreakdown.netPay) : '0.00'}
@@ -681,21 +715,21 @@ export default function EmployeePortalView({
                 Paid {formatToDDMMMYYYY(latestPayrollDate)}
               </p>
             </div>
-            <div className="rounded-2xl bg-[#fff8f1] p-4">
+            <div className="rounded-2xl bg-surface-container-low p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-on-surface-variant">Profile complete</p>
               <p className="mt-2 text-2xl font-bold text-on-background">{profileCompleteness}%</p>
               <p className="mt-1 text-xs text-on-surface-variant">
                 Contact and banking records are up to date.
               </p>
             </div>
-            <div className="rounded-2xl bg-[#fff8f1] p-4">
+            <div className="rounded-2xl bg-surface-container-low p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-on-surface-variant">Leave balance</p>
               <p className="mt-2 text-2xl font-bold text-on-background">{annualLeaveRemaining} days</p>
               <p className="mt-1 text-xs text-on-surface-variant">
                 {pendingLeaveCount} request{pendingLeaveCount === 1 ? '' : 's'} pending
               </p>
             </div>
-            <div className="rounded-2xl bg-[#fff8f1] p-4">
+            <div className="rounded-2xl bg-surface-container-low p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-on-surface-variant">Performance</p>
               <p className="mt-2 text-2xl font-bold text-on-background">{performanceRating}/5</p>
               <p className="mt-1 text-xs text-on-surface-variant">
@@ -721,7 +755,7 @@ export default function EmployeePortalView({
             </button>
           </div>
           <div className="grid gap-4 p-6 md:grid-cols-2">
-            <div className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+            <div className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <div className="flex items-center gap-2 text-primary">
                 <Clock3 className="h-4 w-4" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Payroll</span>
@@ -731,7 +765,7 @@ export default function EmployeePortalView({
                 {latestPayrollRecord ? `${latestPayrollRecord.documentType || getPayrollDocumentProfile(selectedEmployee).documentType} for ${latestPayrollMonth}/${latestPayrollYear}` : 'No payroll record yet'}
               </p>
             </div>
-            <div className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+            <div className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <div className="flex items-center gap-2 text-primary">
                 <ClipboardList className="h-4 w-4" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Profile</span>
@@ -741,7 +775,7 @@ export default function EmployeePortalView({
                 Emergency contact and mobile number can be saved from the My Profile tab.
               </p>
             </div>
-            <div className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+            <div className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <div className="flex items-center gap-2 text-primary">
                 <CalendarDays className="h-4 w-4" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Leave</span>
@@ -751,14 +785,14 @@ export default function EmployeePortalView({
                 {currentMonthLeaveRequests.length} leave request{currentMonthLeaveRequests.length === 1 ? '' : 's'} logged.
               </p>
             </div>
-            <div className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+            <div className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <div className="flex items-center gap-2 text-primary">
-                <LifeBuoy className="h-4 w-4" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Support</span>
+                <BookOpen className="h-4 w-4" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Onboarding</span>
               </div>
-              <p className="mt-3 text-sm font-semibold text-on-background">{openSupportCount} open ticket{openSupportCount === 1 ? '' : 's'}</p>
+              <p className="mt-3 text-sm font-semibold text-on-background">Handbook & compliance</p>
               <p className="mt-1 text-xs text-on-surface-variant">
-                HR is tracking your open requests and will reply inside the portal.
+                Continue your employee handbook, onboarding checklist, and compliance quiz.
               </p>
             </div>
           </div>
@@ -783,11 +817,11 @@ export default function EmployeePortalView({
               },
               {
                 title: 'Handbook refresh',
-                body: 'Check the Documents tab for the latest handbook and compliance links.',
-                tag: 'Documents',
+                body: 'Check the Onboarding tab for the latest handbook, compliance quiz, and completion record.',
+                tag: 'Onboarding',
               },
             ].map((announcement) => (
-              <article key={announcement.title} className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+              <article key={announcement.title} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.35em] text-primary">
                     {announcement.tag}
@@ -822,7 +856,7 @@ export default function EmployeePortalView({
         </div>
 
         <div className="mt-6 space-y-5">
-          <div className="flex items-center gap-4 rounded-3xl border border-neutral-border bg-[#fffaf4] p-5">
+          <div className="flex items-center gap-4 rounded-3xl border border-neutral-border bg-surface-container-low p-5">
             <EmployeeAvatar employee={selectedEmployee} className="h-16 w-16 rounded-3xl" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -881,7 +915,7 @@ export default function EmployeePortalView({
             </label>
           </div>
 
-          <div className="rounded-3xl border border-neutral-border bg-[#fffaf4] p-5">
+          <div className="rounded-3xl border border-neutral-border bg-surface-container-low p-5">
             <div className="flex items-center gap-2 text-primary">
               <BriefcaseBusiness className="h-4 w-4" />
               <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Employment record</span>
@@ -920,12 +954,12 @@ export default function EmployeePortalView({
         <div className={`${cardClass} p-6`}>
           <h3 className="text-base font-bold text-on-background">Family details</h3>
           <div className="mt-4 space-y-4 text-sm">
-            <div className="flex items-center justify-between rounded-2xl border border-neutral-border bg-[#fffaf4] px-4 py-3">
+            <div className="flex items-center justify-between rounded-2xl border border-neutral-border bg-surface-container-low px-4 py-3">
               <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Marital status</span>
               <span className="font-semibold text-on-background">{selectedEmployee.maritalStatus}</span>
             </div>
             {selectedEmployee.spouseName ? (
-              <div className="grid gap-3 rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+              <div className="grid gap-3 rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                 <div className="flex items-center gap-2 text-primary">
                   <Heart className="h-4 w-4" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Spouse</span>
@@ -941,7 +975,7 @@ export default function EmployeePortalView({
             {selectedDependants.length > 0 ? (
               <div className="space-y-3">
                 {selectedDependants.map((dependant) => (
-                  <div key={dependant.id} className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+                  <div key={dependant.id} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                     <p className="font-semibold text-on-background">{dependant.name}</p>
                     <p className="mt-1 text-xs text-on-surface-variant">
                       {dependant.gender} · {formatToDDMMMYYYY(dependant.dob)}
@@ -991,13 +1025,13 @@ export default function EmployeePortalView({
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-[#fff8f1] p-4">
+          <div className="rounded-2xl bg-surface-container-low p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-on-surface-variant">Document type</p>
             <p className="mt-2 text-lg font-bold text-on-background">
               {getPayrollDocumentProfile(selectedEmployee).documentType}
             </p>
           </div>
-          <div className="rounded-2xl bg-[#fff8f1] p-4">
+          <div className="rounded-2xl bg-surface-container-low p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-on-surface-variant">Net pay</p>
             <p className="mt-2 text-lg font-bold text-on-background">
               RM {latestPayrollBreakdown ? currency(latestPayrollBreakdown.netPay) : '0.00'}
@@ -1013,7 +1047,7 @@ export default function EmployeePortalView({
               <button
                 key={record.id}
                 onClick={() => openPayslip(record)}
-                className="w-full rounded-2xl border border-neutral-border bg-white p-4 text-left transition-shadow hover:shadow-[0_14px_30px_rgba(53,24,18,0.08)]"
+                className="w-full rounded-2xl border border-neutral-border bg-surface-container-lowest p-4 text-left transition-colors hover:border-primary hover:bg-surface-container-low"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -1034,7 +1068,7 @@ export default function EmployeePortalView({
               </button>
             );
           }) : (
-            <div className="rounded-3xl border border-dashed border-neutral-border bg-[#fffaf4] p-8 text-center">
+            <div className="rounded-3xl border border-dashed border-neutral-border bg-surface-container-low p-8 text-center">
               <FileDown className="mx-auto h-6 w-6 text-primary" />
               <p className="mt-3 text-sm font-semibold text-on-background">No archived payroll records yet.</p>
               <p className="mt-1 text-xs text-on-surface-variant">A current payroll snapshot will still be available for preview.</p>
@@ -1067,14 +1101,14 @@ export default function EmployeePortalView({
             )}` : '—' },
             { label: 'Tax / PCB', value: latestPayrollBreakdown ? `RM ${currency(latestPayrollBreakdown.taxPcbVal)}` : '—' },
           ].map((item) => (
-            <div key={item.label} className="rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+            <div key={item.label} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">{item.label}</p>
               <p className="mt-2 text-sm font-semibold text-on-background">{item.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 rounded-3xl border border-neutral-border bg-[#fffaf4] p-5">
+        <div className="mt-6 rounded-3xl border border-neutral-border bg-surface-container-low p-5">
           <div className="flex items-center gap-2 text-primary">
             <MessageSquareText className="h-4 w-4" />
             <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Need a PDF?</span>
@@ -1099,12 +1133,12 @@ export default function EmployeePortalView({
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-[#fff8f1] p-4">
+          <div className="rounded-2xl bg-surface-container-low p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-on-surface-variant">Annual leave</p>
             <p className="mt-2 text-2xl font-bold text-on-background">{annualLeaveRemaining}</p>
             <p className="mt-1 text-xs text-on-surface-variant">of {annualLeaveBalance?.entitlementDays || 0} days remaining</p>
           </div>
-          <div className="rounded-2xl bg-[#fff8f1] p-4">
+          <div className="rounded-2xl bg-surface-container-low p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-on-surface-variant">Sick leave</p>
             <p className="mt-2 text-2xl font-bold text-on-background">{sickLeaveRemaining}</p>
             <p className="mt-1 text-xs text-on-surface-variant">of {sickLeaveBalance?.entitlementDays || 0} days remaining</p>
@@ -1113,7 +1147,7 @@ export default function EmployeePortalView({
 
         <div className="mt-6 space-y-3">
           {leaveBalances.length > 0 ? leaveBalances.map((balance) => (
-              <div key={balance.leaveTypeId} className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+              <div key={balance.leaveTypeId} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-on-background">{balance.leaveType}</p>
@@ -1200,7 +1234,7 @@ export default function EmployeePortalView({
           <h3 className="text-base font-bold text-on-background">My requests</h3>
           <div className="mt-4 space-y-3">
             {visibleLeaveRequests.length > 0 ? visibleLeaveRequests.map((request) => (
-              <div key={request.id} className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4">
+              <div key={request.id} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-on-background">{request.leaveType}</p>
@@ -1256,7 +1290,7 @@ export default function EmployeePortalView({
             </div>
             <div className="mt-5 space-y-3">
               {selectedCareerHistory.length > 0 ? selectedCareerHistory.map((entry) => (
-                <div key={entry.id} className="rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+                <div key={entry.id} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-semibold text-on-background">{entry.type}</p>
                     <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
@@ -1288,7 +1322,7 @@ export default function EmployeePortalView({
                   : 'Your profile details are complete.',
                 'Use evidence links for documents, approvals, or analytics screenshots that support each KPI.',
               ].map((item) => (
-                <div key={item} className="rounded-2xl border border-neutral-border bg-[#fffaf4] p-4 text-sm text-on-surface-variant">
+                <div key={item} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4 text-sm text-on-surface-variant">
                   {item}
                 </div>
               ))}
@@ -1313,7 +1347,7 @@ export default function EmployeePortalView({
         <div className="mt-6 space-y-3">
           <button
             onClick={() => openPayslip(latestPayrollRecord || undefined)}
-            className="flex w-full items-center justify-between rounded-2xl border border-neutral-border bg-[#fff8f1] p-4 text-left"
+            className="flex w-full items-center justify-between rounded-2xl border border-neutral-border bg-surface-container-low p-4 text-left"
           >
             <div>
               <p className="font-semibold text-on-background">Latest payslip</p>
@@ -1322,16 +1356,16 @@ export default function EmployeePortalView({
             <ChevronRight className="h-4 w-4 text-primary" />
           </button>
           <button
-            onClick={() => window.location.assign('/hire-onboarding/onboarding-portal')}
-            className="flex w-full items-center justify-between rounded-2xl border border-neutral-border bg-[#fff8f1] p-4 text-left"
+            onClick={() => setActiveSection('onboarding')}
+            className="flex w-full items-center justify-between rounded-2xl border border-neutral-border bg-surface-container-low p-4 text-left"
           >
             <div>
-              <p className="font-semibold text-on-background">Handbook & compliance</p>
-              <p className="text-xs text-on-surface-variant">Continue to the handbook and quiz workspace.</p>
+              <p className="font-semibold text-on-background">Onboarding, handbook & compliance</p>
+              <p className="text-xs text-on-surface-variant">Open your handbook, quiz, and completion record inside this employee site.</p>
             </div>
-            <ExternalLink className="h-4 w-4 text-primary" />
+            <ChevronRight className="h-4 w-4 text-primary" />
           </button>
-          <div className="rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+          <div className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
             <p className="font-semibold text-on-background">Tax / HR forms</p>
             <p className="mt-1 text-xs text-on-surface-variant">Use Support for ad-hoc document requests or corrections.</p>
           </div>
@@ -1346,7 +1380,7 @@ export default function EmployeePortalView({
             { label: 'IC Back', url: selectedEmployee.icBackUrl },
             { label: 'Education cert', url: selectedEmployee.educationCertUrl },
           ].map((document) => (
-            <div key={document.label} className="rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+            <div key={document.label} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <p className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">{document.label}</p>
               {document.url ? (
                 <a
@@ -1364,17 +1398,45 @@ export default function EmployeePortalView({
           ))}
         </div>
 
-        <div className="mt-6 rounded-3xl border border-neutral-border bg-[#fffaf4] p-5">
+        <div className="mt-6 rounded-3xl border border-neutral-border bg-surface-container-low p-5">
           <div className="flex items-center gap-2 text-primary">
             <BookOpen className="h-4 w-4" />
             <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Need handbook access?</span>
           </div>
           <p className="mt-3 text-sm text-on-surface-variant">
-            The handbook and compliance quiz open in the onboarding portal. Your current employee session will follow you there.
+            The handbook and compliance quiz are now grouped with Onboarding in this employee portal.
           </p>
         </div>
       </section>
     </div>
+  );
+
+  const renderOnboarding = () => (
+    <section className={`${cardClass} p-4 sm:p-6`}>
+      <React.Suspense
+        fallback={
+          <div className="flex min-h-[360px] items-center justify-center rounded-3xl border border-dashed border-neutral-border bg-surface-container-low p-8 text-center">
+            <div>
+              <ClipboardList className="mx-auto h-8 w-8 text-primary" />
+              <p className="mt-3 text-sm font-bold text-on-background">Loading onboarding workspace...</p>
+              <p className="mt-1 text-xs text-on-surface-variant">Preparing your handbook, quiz, and completion record.</p>
+            </div>
+          </div>
+        }
+      >
+        <OnboardingPortalView
+          employees={[selectedEmployee]}
+          candidates={onboardingCandidates}
+          currentUserName={currentUserName || selectedEmployee.name}
+          currentUserEmail={currentUserEmail || selectedEmployee.email}
+          currentUserRole={currentUserRole || 'Employee'}
+          onShowNotification={onShowNotification}
+          onUpdateEmployee={onUpdateEmployee}
+          onUpdateCandidate={onUpdateCandidate}
+          embeddedEmployeeMode
+        />
+      </React.Suspense>
+    </section>
   );
 
   const renderSupport = () => (
@@ -1448,15 +1510,15 @@ export default function EmployeePortalView({
         <div className={`${cardClass} p-6`}>
           <h3 className="text-base font-bold text-on-background">Contact HR</h3>
           <div className="mt-4 space-y-3 text-sm">
-            <div className="flex items-center gap-3 rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <Mail className="h-4 w-4 text-primary" />
               <span>hr@redpoint.com.my</span>
             </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <Phone className="h-4 w-4 text-primary" />
               <span>+60 3-0000 0000</span>
             </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-neutral-border bg-surface-container-low p-4">
               <Clock3 className="h-4 w-4 text-primary" />
               <span>Mon-Fri, 9:00 AM to 6:00 PM</span>
             </div>
@@ -1467,7 +1529,7 @@ export default function EmployeePortalView({
           <h3 className="text-base font-bold text-on-background">Open requests</h3>
           <div className="mt-4 space-y-3">
             {supportRequests.length > 0 ? supportRequests.map((request) => (
-              <div key={request.id} className="rounded-2xl border border-neutral-border bg-[#fff8f1] p-4">
+              <div key={request.id} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-on-background">{request.subject}</p>
@@ -1498,6 +1560,8 @@ export default function EmployeePortalView({
         return renderPayslips();
       case 'leave':
         return renderLeave();
+      case 'onboarding':
+        return renderOnboarding();
       case 'growth':
         return renderGrowth();
       case 'documents':
@@ -1511,86 +1575,90 @@ export default function EmployeePortalView({
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(130,85,0,0.08),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_#eff4f8_100%)] text-on-background" style={portalTheme}>
-      <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        <aside className="hidden lg:block lg:w-[292px] lg:shrink-0">
-          <div className="sticky top-0 h-screen">
-            {sidebarContent}
-          </div>
-        </aside>
-
-        {isMobileNavOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-            onClick={() => setIsMobileNavOpen(false)}
-          />
-        )}
-
-        <aside
-          className={`fixed inset-y-0 left-0 z-50 w-[292px] transform transition-transform duration-300 lg:hidden ${
-            isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
+    <div className="flex h-screen overflow-hidden bg-background font-sans text-on-background select-none" style={portalTheme}>
+      <aside className="hidden w-[240px] shrink-0 border-r border-outline-variant/20 bg-primary lg:block">
+        <div className="h-screen">
           {sidebarContent}
-        </aside>
+        </div>
+      </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 border-b border-neutral-border/70 bg-white/85 px-4 py-4 backdrop-blur-md md:px-6 lg:hidden">
-            <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => setIsMobileNavOpen(true)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-border bg-white text-on-surface"
+      {isMobileNavOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setIsMobileNavOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-[240px] transform transition-transform duration-300 lg:hidden ${
+          isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="z-20 flex h-16 shrink-0 items-center justify-between border-b border-neutral-border bg-surface px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="rounded p-2 transition-colors hover:bg-surface-container lg:hidden"
+              aria-label="Open employee navigation"
+            >
+              <Menu className="h-5 w-5 text-primary" />
+            </button>
+            <div className="min-w-0">
+              <span className="inline-block max-w-[52vw] truncate rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary align-middle sm:max-w-none">
+                {portalCompanyName} Employee Site
+              </span>
+              <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
+                {currentSectionTitle}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="hidden text-right md:block">
+              <span className="block text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">Kuala Lumpur Date</span>
+              <span className="block text-xs font-mono font-bold text-on-surface">{getGmt8LongDateString()}</span>
+            </div>
+            {isPreviewMode && employees.length > 1 && (
+              <select
+                value={selectedEmployeeId}
+                onChange={(event) => setSelectedEmployeeId(event.target.value)}
+                className="hidden min-w-[220px] rounded border border-neutral-border bg-white px-3 py-2 text-sm outline-none focus:border-primary lg:block"
               >
-                <Menu className="h-5 w-5" />
-              </button>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-on-surface-variant">Employee Portal</p>
-                <p className="truncate text-sm font-semibold text-on-background">{currentSectionTitle}</p>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name} · {employee.designation}
+                  </option>
+                ))}
+              </select>
+            )}
+            <div className="hidden h-8 w-px bg-neutral-border/40 md:block" />
+            <div className="flex items-center gap-2.5 pl-0 md:border-l md:border-neutral-border/40 md:pl-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-border bg-primary text-xs font-bold text-[#FFDDB3]">
+                {employeeInitials || 'EP'}
+              </div>
+              <div className="hidden text-left leading-none sm:block">
+                <span className="block text-xs font-bold text-on-surface">{selectedEmployee.name}</span>
+                <span className="mt-0.5 block max-w-[220px] truncate text-[10px] text-on-surface-variant">{employeeMetaLine}</span>
               </div>
               <button
                 onClick={onSignOut}
-                className="inline-flex h-11 items-center rounded-xl border border-neutral-border bg-white px-3 text-sm font-semibold text-on-surface"
+                className="ml-0 border-l border-neutral-border/40 pl-2.5 text-[10px] font-bold uppercase text-primary transition-colors hover:text-primary-container md:ml-2.5"
               >
-                Exit
+                Sign Out
               </button>
             </div>
-          </header>
+          </div>
+        </header>
 
-          <main className="flex-1 overflow-y-auto px-4 py-5 md:px-6 md:py-6 lg:px-8 lg:py-8">
-            <div className="mx-auto max-w-7xl space-y-6">
-              <div className="hidden items-end justify-between gap-4 rounded-[2rem] border border-neutral-border bg-white/80 p-6 shadow-[0_18px_40px_rgba(53,24,18,0.05)] backdrop-blur-sm lg:flex">
-                <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-primary">Employee workspace</p>
-                  <h1 className="text-3xl font-bold text-on-background">{currentSectionTitle}</h1>
-                  <p className="text-sm text-on-surface-variant">{getGmt8LongDateString()}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  {isPreviewMode && employees.length > 1 && (
-                    <select
-                      value={selectedEmployeeId}
-                      onChange={(event) => setSelectedEmployeeId(event.target.value)}
-                      className="min-w-[220px] rounded-xl border border-neutral-border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
-                    >
-                      {employees.map((employee) => (
-                        <option key={employee.id} value={employee.id}>
-                          {employee.name} · {employee.designation}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <button
-                    onClick={onSignOut}
-                    className="inline-flex items-center gap-2 rounded-xl border border-neutral-border bg-white px-4 py-2.5 text-sm font-semibold text-on-surface"
-                  >
-                    Sign out <ArrowUpRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {mainContent()}
-            </div>
-          </main>
-        </div>
+        <main className="flex-1 overflow-y-auto bg-surface-container-low p-4 md:p-6 lg:p-8 select-text">
+          <div className="mx-auto max-w-7xl space-y-6">
+            {mainContent()}
+          </div>
+        </main>
       </div>
 
       {selectedPayslip && selectedEmployee && (

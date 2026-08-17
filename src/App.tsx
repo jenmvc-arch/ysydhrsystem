@@ -2124,6 +2124,9 @@ export default function App() {
   const employeePortalPerformances = performances
     .filter(performance => employeePortalEmployeeKeys.has(performance.employeeId.toLowerCase()));
   const employeePortalReviewCycles = reviewCycles;
+  const employeePortalCandidates = employeePortalEmployeeEmail
+    ? candidates.filter(candidate => candidate.email.toLowerCase() === employeePortalEmployeeEmail)
+    : [];
   const shouldRenderEmployeePortal = isEmployeePortalPreview || (isAuthenticated && isEmployeeAccount);
   const handleEmployeePortalUpdateEmployee = async (id: string, updates: Partial<Employee>) => {
     const normalizedId = id.toLowerCase();
@@ -2358,6 +2361,7 @@ export default function App() {
           employees={employeePortalEmployees}
           payrollRecords2026={employeePortalPayrollRecords}
           entities={employeePortalEntities}
+          candidates={employeePortalCandidates}
           performances={employeePortalPerformances}
           reviewCycles={employeePortalReviewCycles}
           currentUserName={isEmployeePortalPreview ? employeePortalEmployee?.name || 'Employee' : currentUserName}
@@ -2365,6 +2369,7 @@ export default function App() {
           currentUserRole={isEmployeePortalPreview ? 'Employee' : currentUserRole}
           onShowNotification={triggerNotification}
           onUpdateEmployee={isEmployeePortalPreview ? async () => {} : handleEmployeePortalUpdateEmployee}
+          onUpdateCandidate={isEmployeePortalPreview ? async () => {} : handleUpdateCandidate}
           onSavePerformance={isEmployeePortalPreview ? () => {} : handleSavePerformance}
           onSignOut={handleSignOut}
           isPreviewMode={isEmployeePortalPreview}
