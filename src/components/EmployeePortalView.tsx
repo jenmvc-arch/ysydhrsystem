@@ -27,11 +27,13 @@ import {
   BriefcaseBusiness,
   Sparkles,
   Clock3,
+  Plus,
+  Trash2,
   FileDown,
   ExternalLink,
   ClipboardList,
 } from 'lucide-react';
-import { Candidate, Employee, EmployeePerformance, CorporateEntity, PayrollRecord2026, ReviewCycle } from '../types';
+import { Candidate, Dependant, Employee, EmployeePerformance, CorporateEntity, PayrollRecord2026, ReviewCycle } from '../types';
 import EmployeeAvatar from './EmployeeAvatar';
 import PayslipDocumentView from './PayslipDocumentView';
 import PerformanceAppraisalForm from './PerformanceAppraisalForm';
@@ -70,6 +72,26 @@ interface SupportRequest {
   status: 'Open' | 'In Progress' | 'Resolved';
   createdAt: string;
   updatedAt: string;
+}
+
+interface EmployeeProfileDraft {
+  contactNumber: string;
+  emergencyContactName: string;
+  emergencyContactRelation: string;
+  emergencyContactPhone: string;
+  avatarUrl: string;
+  bankName: string;
+  accountNo: string;
+  taxNumber: string;
+  epfNumber: string;
+  maritalStatus: Employee['maritalStatus'];
+  spouseName: string;
+  spouseNric: string;
+  spouseIsWorking: 'Yes' | 'No';
+  spouseCompany: string;
+  spousePosition: string;
+  hasDependants: 'Yes' | 'No';
+  dependants: Dependant[];
 }
 
 interface EmployeePortalViewProps {
@@ -267,7 +289,6 @@ export default function EmployeePortalView({
     : null;
 
   const selectedCareerHistory = selectedEmployee?.careerHistory || [];
-  const selectedDependants = selectedEmployee?.dependants || [];
 
   const storagePrefix = isPreviewMode ? 'employee_portal_demo_' : 'employee_portal_';
   const supportStorageKey = selectedEmployee?.id ? `${storagePrefix}employee_support_requests_${selectedEmployee.id}` : '';
@@ -318,25 +339,57 @@ export default function EmployeePortalView({
     setSupportPriority('Normal');
   }, [selectedEmployee?.id, supportStorageKey]);
 
-  const [profileDraft, setProfileDraft] = useState({
+  const [profileDraft, setProfileDraft] = useState<EmployeeProfileDraft>({
     contactNumber: '',
     emergencyContactName: '',
     emergencyContactRelation: '',
     emergencyContactPhone: '',
     avatarUrl: '',
+    bankName: '',
+    accountNo: '',
+    taxNumber: '',
+    epfNumber: '',
+    maritalStatus: 'Single',
+    spouseName: '',
+    spouseNric: '',
+    spouseIsWorking: 'No',
+    spouseCompany: '',
+    spousePosition: '',
+    hasDependants: 'No',
+    dependants: [],
   });
 
   useEffect(() => {
     if (!selectedEmployee?.id) return;
-    const previewOverrides = isPreviewMode
-      ? readPreviewEmployeeOverrides(selectedEmployee.id)
-      : {};
+    let dependants: Dependant[] = [];
+    if (Array.isArray(selectedEmployee.dependants)) {
+      dependants = selectedEmployee.dependants;
+    } else if (typeof selectedEmployee.dependants === 'string' && selectedEmployee.dependants) {
+      try {
+        const parsed = JSON.parse(selectedEmployee.dependants);
+        if (Array.isArray(parsed)) dependants = parsed;
+      } catch (_error) {
+        dependants = [];
+      }
+    }
     setProfileDraft({
       contactNumber: selectedEmployee.contactNumber || '',
       emergencyContactName: selectedEmployee.emergencyContactName || '',
       emergencyContactRelation: selectedEmployee.emergencyContactRelation || '',
       emergencyContactPhone: selectedEmployee.emergencyContactPhone || '',
       avatarUrl: selectedEmployee.avatarUrl || '',
+      bankName: selectedEmployee.bankName || '',
+      accountNo: selectedEmployee.accountNo || '',
+      taxNumber: selectedEmployee.taxNumber || '',
+      epfNumber: selectedEmployee.epfNumber || '',
+      maritalStatus: selectedEmployee.maritalStatus || 'Single',
+      spouseName: selectedEmployee.spouseName || '',
+      spouseNric: selectedEmployee.spouseNric || '',
+      spouseIsWorking: selectedEmployee.spouseIsWorking || 'No',
+      spouseCompany: selectedEmployee.spouseCompany || '',
+      spousePosition: selectedEmployee.spousePosition || '',
+      hasDependants: selectedEmployee.hasDependants || (dependants.length > 0 ? 'Yes' : 'No'),
+      dependants,
     });
   }, [isPreviewMode, selectedEmployee?.id]);
 
@@ -433,12 +486,34 @@ export default function EmployeePortalView({
     if (!selectedEmployee) return;
     setIsSavingProfile(true);
     try {
+      const savedDependants = profileDraft.hasDependants === 'Yes'
+        ? profileDraft.dependants
+          .filter((dependant) => dependant.name.trim() && dependant.dob)
+          .map((dependant) => ({
+            ...dependant,
+            name: dependant.name.trim(),
+          }))
+        : [];
+      const isMarried = profileDraft.maritalStatus === 'Married';
+      const isSpouseWorking = profileDraft.spouseIsWorking === 'Yes';
       const profileUpdates: Partial<Employee> = {
         contactNumber: profileDraft.contactNumber.trim(),
         emergencyContactName: profileDraft.emergencyContactName.trim(),
         emergencyContactRelation: profileDraft.emergencyContactRelation.trim(),
         emergencyContactPhone: profileDraft.emergencyContactPhone.trim(),
         avatarUrl: profileDraft.avatarUrl.trim(),
+        bankName: profileDraft.bankName.trim(),
+        accountNo: profileDraft.accountNo.trim(),
+        taxNumber: profileDraft.taxNumber.trim(),
+        epfNumber: profileDraft.epfNumber.trim(),
+        maritalStatus: profileDraft.maritalStatus,
+        spouseName: isMarried ? profileDraft.spouseName.trim() : '',
+        spouseNric: isMarried ? profileDraft.spouseNric.trim() : '',
+        spouseIsWorking: isMarried ? profileDraft.spouseIsWorking : 'No',
+        spouseCompany: isMarried && isSpouseWorking ? profileDraft.spouseCompany.trim() : '',
+        spousePosition: isMarried && isSpouseWorking ? profileDraft.spousePosition.trim() : '',
+        hasDependants: savedDependants.length > 0 ? 'Yes' : 'No',
+        dependants: savedDependants,
       };
       if (isPreviewMode) {
         savePreviewEmployeeOverrides(selectedEmployee.id, {
@@ -447,13 +522,49 @@ export default function EmployeePortalView({
       } else {
         await onUpdateEmployee(selectedEmployee.id, profileUpdates);
       }
-      onShowNotification('Profile Updated', 'Your contact details were saved.');
+      onShowNotification('Profile Updated', 'Your contact, bank, statutory, and family details were saved.');
     } catch (error) {
       console.error('[Employee Portal] Profile save failed:', error);
       onShowNotification('Profile Update Failed', 'We could not save your profile details right now.');
     } finally {
       setIsSavingProfile(false);
     }
+  };
+
+  const addProfileDependant = () => {
+    setProfileDraft((previous) => ({
+      ...previous,
+      hasDependants: 'Yes',
+      dependants: [
+        ...previous.dependants,
+        {
+          id: `portal-dependant-${Date.now()}`,
+          name: '',
+          gender: 'Male',
+          dob: '',
+        },
+      ],
+    }));
+  };
+
+  const updateProfileDependant = (id: string, updates: Partial<Dependant>) => {
+    setProfileDraft((previous) => ({
+      ...previous,
+      dependants: previous.dependants.map((dependant) =>
+        dependant.id === id ? { ...dependant, ...updates } : dependant
+      ),
+    }));
+  };
+
+  const removeProfileDependant = (id: string) => {
+    setProfileDraft((previous) => {
+      const dependants = previous.dependants.filter((dependant) => dependant.id !== id);
+      return {
+        ...previous,
+        hasDependants: dependants.length > 0 ? 'Yes' : 'No',
+        dependants,
+      };
+    });
   };
 
   const handleSubmitLeave = async (event: React.FormEvent) => {
@@ -843,7 +954,7 @@ export default function EmployeePortalView({
         <div className="flex items-start justify-between gap-4 border-b border-neutral-border/70 pb-4">
           <div>
             <h2 className="text-xl font-bold text-on-background">My Profile</h2>
-            <p className="text-xs text-on-surface-variant">Update your contact details and review your employment record.</p>
+            <p className="text-xs text-on-surface-variant">Update your contact, bank, statutory, and family details.</p>
           </div>
           <button
             onClick={handleSaveProfile}
@@ -886,6 +997,42 @@ export default function EmployeePortalView({
                 value={profileDraft.avatarUrl}
                 onChange={(event) => setProfileDraft((prev) => ({ ...prev, avatarUrl: event.target.value }))}
                 className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Bank name</span>
+              <input
+                value={profileDraft.bankName}
+                onChange={(event) => setProfileDraft((prev) => ({ ...prev, bankName: event.target.value }))}
+                className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                placeholder="Bank name"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Bank account number</span>
+              <input
+                value={profileDraft.accountNo}
+                onChange={(event) => setProfileDraft((prev) => ({ ...prev, accountNo: event.target.value }))}
+                className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm font-mono outline-none transition-colors focus:border-primary"
+                placeholder="Account number"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Tax number</span>
+              <input
+                value={profileDraft.taxNumber}
+                onChange={(event) => setProfileDraft((prev) => ({ ...prev, taxNumber: event.target.value }))}
+                className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm font-mono outline-none transition-colors focus:border-primary"
+                placeholder="TIN / tax number"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">EPF number</span>
+              <input
+                value={profileDraft.epfNumber}
+                onChange={(event) => setProfileDraft((prev) => ({ ...prev, epfNumber: event.target.value }))}
+                className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm font-mono outline-none transition-colors focus:border-primary"
+                placeholder="EPF member number"
               />
             </label>
             <label className="space-y-2">
@@ -951,42 +1098,172 @@ export default function EmployeePortalView({
 
       <section className="space-y-6">
         <div className={`${cardClass} p-6`}>
-          <h3 className="text-base font-bold text-on-background">Family details</h3>
-          <div className="mt-4 space-y-4 text-sm">
-            <div className="flex items-center justify-between rounded-2xl border border-neutral-border bg-surface-container-low px-4 py-3">
-              <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Marital status</span>
-              <span className="font-semibold text-on-background">{selectedEmployee.maritalStatus}</span>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-on-background">Family details</h3>
+              <p className="mt-1 text-xs text-on-surface-variant">Keep marital, spouse, and dependant information current.</p>
             </div>
-            {selectedEmployee.spouseName ? (
-              <div className="grid gap-3 rounded-2xl border border-neutral-border bg-surface-container-low p-4">
+            <Heart className="h-5 w-5 text-primary" />
+          </div>
+
+          <div className="mt-5 space-y-4 text-sm">
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Marital status</span>
+              <select
+                value={profileDraft.maritalStatus}
+                onChange={(event) => setProfileDraft((previous) => ({
+                  ...previous,
+                  maritalStatus: event.target.value as Employee['maritalStatus'],
+                }))}
+                className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+              >
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </label>
+
+            {profileDraft.maritalStatus === 'Married' && (
+              <div className="space-y-4 rounded-2xl border border-neutral-border bg-surface-container-low p-4">
                 <div className="flex items-center gap-2 text-primary">
                   <Heart className="h-4 w-4" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Spouse</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.35em]">Spouse details</span>
                 </div>
-                <p className="font-semibold text-on-background">{selectedEmployee.spouseName}</p>
-                <p className="text-xs text-on-surface-variant">{selectedEmployee.spouseIsWorking === 'Yes' ? `${selectedEmployee.spouseCompany} · ${selectedEmployee.spousePosition}` : 'Not working / home-maker'}</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Spouse name</span>
+                    <input
+                      value={profileDraft.spouseName}
+                      onChange={(event) => setProfileDraft((previous) => ({ ...previous, spouseName: event.target.value }))}
+                      className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Spouse NRIC / passport</span>
+                    <input
+                      value={profileDraft.spouseNric}
+                      onChange={(event) => setProfileDraft((previous) => ({ ...previous, spouseNric: event.target.value }))}
+                      className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm font-mono outline-none transition-colors focus:border-primary"
+                    />
+                  </label>
+                  <label className="space-y-2 md:col-span-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Spouse working</span>
+                    <select
+                      value={profileDraft.spouseIsWorking}
+                      onChange={(event) => setProfileDraft((previous) => ({
+                        ...previous,
+                        spouseIsWorking: event.target.value as 'Yes' | 'No',
+                      }))}
+                      className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                    >
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </label>
+                  {profileDraft.spouseIsWorking === 'Yes' && (
+                    <>
+                      <label className="space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Spouse company</span>
+                        <input
+                          value={profileDraft.spouseCompany}
+                          onChange={(event) => setProfileDraft((previous) => ({ ...previous, spouseCompany: event.target.value }))}
+                          className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                        />
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Spouse position</span>
+                        <input
+                          value={profileDraft.spousePosition}
+                          onChange={(event) => setProfileDraft((previous) => ({ ...previous, spousePosition: event.target.value }))}
+                          className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
               </div>
-            ) : (
-              <p className="rounded-2xl border border-dashed border-neutral-border bg-white px-4 py-5 text-center text-sm text-on-surface-variant">
-                No spouse record on file.
-              </p>
             )}
-            {selectedDependants.length > 0 ? (
-              <div className="space-y-3">
-                {selectedDependants.map((dependant) => (
-                  <div key={dependant.id} className="rounded-2xl border border-neutral-border bg-surface-container-low p-4">
-                    <p className="font-semibold text-on-background">{dependant.name}</p>
-                    <p className="mt-1 text-xs text-on-surface-variant">
-                      {dependant.gender} · {formatToDDMMMYYYY(dependant.dob)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-2xl border border-dashed border-neutral-border bg-white px-4 py-5 text-center text-sm text-on-surface-variant">
-                No dependants declared.
-              </p>
-            )}
+
+            <div className="space-y-4 rounded-2xl border border-neutral-border bg-surface-container-low p-4">
+              <label className="space-y-2">
+                <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Do you have dependants?</span>
+                <select
+                  value={profileDraft.hasDependants}
+                  onChange={(event) => setProfileDraft((previous) => ({
+                    ...previous,
+                    hasDependants: event.target.value as 'Yes' | 'No',
+                    dependants: event.target.value === 'No' ? [] : previous.dependants,
+                  }))}
+                  className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                >
+                  <option value="No">No</option>
+                  <option value="Yes">Yes</option>
+                </select>
+              </label>
+
+              {profileDraft.hasDependants === 'Yes' && (
+                <div className="space-y-3">
+                  {profileDraft.dependants.map((dependant, index) => (
+                    <div key={dependant.id} className="space-y-3 rounded-2xl border border-neutral-border bg-white p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">
+                          Dependant {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeProfileDependant(dependant.id)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-container"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Remove
+                        </button>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <label className="space-y-2 md:col-span-2">
+                          <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Name</span>
+                          <input
+                            value={dependant.name}
+                            onChange={(event) => updateProfileDependant(dependant.id, { name: event.target.value })}
+                            className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                          />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Gender</span>
+                          <select
+                            value={dependant.gender}
+                            onChange={(event) => updateProfileDependant(dependant.id, { gender: event.target.value as Dependant['gender'] })}
+                            className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                          >
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                          </select>
+                        </label>
+                        <label className="space-y-2 md:col-span-3">
+                          <span className="text-xs font-bold uppercase tracking-[0.25em] text-on-surface-variant">Date of birth</span>
+                          <input
+                            type="date"
+                            value={dependant.dob}
+                            onChange={(event) => updateProfileDependant(dependant.id, { dob: event.target.value })}
+                            className="w-full rounded-2xl border border-neutral-border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addProfileDependant}
+                    disabled={profileDraft.dependants.length >= 10}
+                    className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add dependant
+                  </button>
+                  <p className="text-xs text-on-surface-variant">You can add up to 10 dependants.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
