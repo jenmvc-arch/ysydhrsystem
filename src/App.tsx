@@ -2454,7 +2454,7 @@ export default function App() {
 
       {/* Toast Notification HUD */}
       {toast.show && (
-        <div className="fixed top-4 right-4 z-50 max-w-sm bg-white border border-neutral-border shadow-2xl rounded-lg p-4 flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-4 right-4 z-50 max-w-sm bg-white/95 backdrop-blur border border-neutral-border shadow-xl rounded-2xl p-4 flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
           <div className="shrink-0 mt-0.5">
             {toast.type === 'success' ? (
               <CheckCircle className="w-5 h-5 text-green-600" />
@@ -2491,17 +2491,17 @@ export default function App() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         
         {/* Top bar (for search results & system status indicators) */}
-        <header className="h-16 border-b border-neutral-border bg-surface px-6 flex justify-between items-center shrink-0 z-20">
+        <header className="h-[68px] border-b border-neutral-border/80 bg-white/80 backdrop-blur-xl px-6 flex justify-between items-center shrink-0 z-20">
           <div className="flex items-center gap-3">
             {/* Mobile Toggle Button */}
             <button 
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-2 rounded hover:bg-surface-container transition-colors cursor-pointer"
+              className="md:hidden p-2 rounded-xl hover:bg-surface-container transition-colors cursor-pointer"
             >
               <Menu className="w-5 h-5 text-primary" />
             </button>
-            <span className="text-xs font-bold text-primary bg-primary/10 py-1 px-3 rounded-full hidden sm:inline-block">
-              {companyName} Core Console
+            <span className="text-[11px] font-semibold text-primary bg-teal-50 py-1.5 px-3 rounded-full hidden sm:inline-block tracking-wide">
+              {companyName}
             </span>
           </div>
 
@@ -2549,7 +2549,7 @@ export default function App() {
         </header>
 
         {/* Core Main Scrollable Content Pane */}
-        <main className="flex-1 overflow-y-auto bg-surface-container-low p-6 md:p-8 select-text">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 select-text">
           {currentTab === 'dashboard' && (
             <DashboardView 
               employees={filteredEmployeesWithHistory}

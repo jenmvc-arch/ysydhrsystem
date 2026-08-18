@@ -308,7 +308,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-container-low to-surface-container-high p-4 select-text relative overflow-hidden font-sans text-on-background">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0d1b1e] p-4 select-text relative overflow-hidden font-sans text-on-background">
       
       {/* Background Accents (Minimal Red Curves) */}
       <div className="absolute top-0 left-0 w-64 h-full pointer-events-none opacity-20">
