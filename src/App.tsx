@@ -90,6 +90,13 @@ const parseOptionalJson = <T,>(value: unknown): T | undefined => {
 
 const REMOTE_DATA_LOAD_TIMEOUT_MS = import.meta.env.DEV ? 7000 : 30000;
 const LOCAL_DATA_RESET_VERSION = '20260812-industrial-empty';
+// Temporary development bypass. Set to false to restore the normal login gate.
+const TEMPORARY_LOGIN_BYPASS = true;
+const TEMPORARY_BYPASS_USER = {
+  email: 'hr.redpoint',
+  name: 'HR Administrator',
+  role: 'Global Administrator',
+};
 
 const clearLegacyLocalDataOnce = () => {
   if (typeof window === 'undefined') return;
@@ -229,10 +236,16 @@ export default function App() {
   // Check if we are in print/Puppeteer mode
   const isPrintMode = window.location.search.includes('print=true');
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(TEMPORARY_LOGIN_BYPASS);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(
+    TEMPORARY_LOGIN_BYPASS ? TEMPORARY_BYPASS_USER.email : null
+  );
+  const [currentUserName, setCurrentUserName] = useState<string | null>(
+    TEMPORARY_LOGIN_BYPASS ? TEMPORARY_BYPASS_USER.name : null
+  );
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(
+    TEMPORARY_LOGIN_BYPASS ? TEMPORARY_BYPASS_USER.role : null
+  );
   const [currentUserMustChangePassword, setCurrentUserMustChangePassword] = useState(false);
   const isEmployeePortalDemoPath = window.location.pathname.startsWith('/employee-portal/demo');
   const isEmployeeAccount = isEmployeePortalRole(currentUserRole);
@@ -285,6 +298,16 @@ export default function App() {
   };
 
   const handleSignOut = () => {
+    if (TEMPORARY_LOGIN_BYPASS) {
+      setIsAuthenticated(true);
+      setCurrentUserEmail(TEMPORARY_BYPASS_USER.email);
+      setCurrentUserName(TEMPORARY_BYPASS_USER.name);
+      setCurrentUserRole(TEMPORARY_BYPASS_USER.role);
+      setCurrentUserMustChangePassword(false);
+      setCurrentTab('dashboard');
+      window.history.replaceState({}, '', '/');
+      return;
+    }
     void supabase?.auth.signOut({ scope: 'local' });
     void employeeSupabase?.auth.signOut({ scope: 'local' });
     localStorage.removeItem('hr-nexus-auth');
@@ -595,6 +618,7 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const restoreSession = async () => {
+      if (TEMPORARY_LOGIN_BYPASS) return;
       // The demo portal is intentionally isolated from every real account.
       // Do not restore a stale admin or employee session into preview mode.
       if (isEmployeePortalDemoPath) return;
@@ -697,6 +721,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isAuthenticated || !currentUserRole) return;
+    if (isEmployeePortalDemoPath) return;
 
     const onEmployeePortalPath = window.location.pathname.startsWith('/employee-portal');
 
@@ -712,7 +737,7 @@ export default function App() {
       setCurrentTab('dashboard');
       window.history.replaceState({ tab: 'dashboard' }, '', '/dashboard');
     }
-  }, [isAuthenticated, currentUserRole]);
+  }, [isAuthenticated, currentUserRole, isEmployeePortalDemoPath]);
 
   // Load data from Supabase or Google Sheets dynamically if configured
   useEffect(() => {
@@ -2251,7 +2276,7 @@ export default function App() {
     );
   }
 
-  if (!isAuthenticated && !isEmployeePortalPreview) {
+  if (!isAuthenticated && !isEmployeePortalPreview && !TEMPORARY_LOGIN_BYPASS) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 
