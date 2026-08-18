@@ -40,6 +40,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { exportAcknowledgementPdf } from '../utils/pdfExport';
 import { OFFICIAL_HANDBOOK } from '../data/handbookDocument';
 import { getHandbookVideoSection } from '../data/handbookVideos';
+import { useFeedback } from '../../context/FeedbackContext';
 
 interface HandbookViewProps {
   modules: HandbookModule[];
@@ -129,6 +130,7 @@ export const HandbookView: React.FC<HandbookViewProps> = ({
   onShowNotification,
 }) => {
   const { t } = useLanguage();
+  const { showWarning, confirmAction } = useFeedback();
   const savedBriefing = useMemo(() => loadSavedBriefing(), []);
 
   const [briefingStatus, setBriefingStatus] = useState<BriefingStatus>(() => {
@@ -509,7 +511,8 @@ export const HandbookView: React.FC<HandbookViewProps> = ({
       : subsectionProgress[module.id] || 0;
 
     if (subsectionIndex > lastAvailableSection) {
-      alert(
+      showWarning(
+        'Section Locked',
         module.status === 'locked' && !partInitials[module.id]
           ? `Part ${module.id} is locked. Please complete Part ${module.id - 1} first.`
           : `${getPartSectionLabel(module.id, subsectionIndex + 1)} is locked. Please complete ${
@@ -629,26 +632,29 @@ export const HandbookView: React.FC<HandbookViewProps> = ({
   };
 
   // START OVER HANDLER
-  const handleStartOver = () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to start over? This will reset your briefing session back to Part 1.'
-    );
-    if (!confirmed) return;
+  const handleStartOver = async () => {
+    await confirmAction({
+      title: 'Start Briefing Over',
+      message: 'Are you sure you want to start over? This will reset your briefing session back to Part 1.',
+      tone: 'warning',
+      confirmLabel: 'Start Over',
+      onConfirm: () => {
+        setSelectedModuleId(1);
+        setSubsectionProgress({});
+        setSelectedSubsectionByPart({});
+        setCompletedVideoSections({});
+        setExpandedPartIds({ 1: true });
+        setBriefingStatus('in_progress');
+        setLastSavedAt(Date.now());
 
-    setSelectedModuleId(1);
-    setSubsectionProgress({});
-    setSelectedSubsectionByPart({});
-    setCompletedVideoSections({});
-    setExpandedPartIds({ 1: true });
-    setBriefingStatus('in_progress');
-    setLastSavedAt(Date.now());
-
-    if (onShowNotification) {
-      onShowNotification(
-        'Briefing Session Reset',
-        'Handbook briefing has been reset to Part 1.'
-      );
-    }
+        if (onShowNotification) {
+          onShowNotification(
+            'Briefing Session Reset',
+            'Handbook briefing has been reset to Part 1.'
+          );
+        }
+      },
+    });
   };
 
   const handleAcknowledge = () => {
@@ -959,7 +965,8 @@ export const HandbookView: React.FC<HandbookViewProps> = ({
                               const prevUncompleted = modules.find(
                                 (prev) => prev.id < m.id && prev.status !== 'completed' && !partInitials[prev.id]
                               );
-                              alert(
+                              showWarning(
+                                'Part Locked',
                                 `Part ${m.id} is locked. Please initial and complete Part ${
                                   prevUncompleted ? prevUncompleted.id : m.id - 1
                                 } first.`
@@ -1584,7 +1591,10 @@ export const HandbookView: React.FC<HandbookViewProps> = ({
                   type="button"
                   onClick={() => {
                     if (!partInitials[activeModule.id] && activeModule.status !== 'completed') {
-                      alert(`Please draw your handwritten initial signature on the pad for Part ${activeModule.id} before proceeding.`);
+                      showWarning(
+                        'Signature Required',
+                        `Please draw your handwritten initial signature on the pad for Part ${activeModule.id} before proceeding.`
+                      );
                       return;
                     }
 

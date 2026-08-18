@@ -55,6 +55,7 @@ import {
   mergeWithDefaultLeaveData,
   normalizeLeaveCode,
 } from '../lib/leaveEngine';
+import { useFeedback } from '../context/FeedbackContext';
 
 export type LeaveRequest = LeaveRequestRecord;
 
@@ -151,6 +152,7 @@ export default function LeaveManagementView({
   activeEntityId,
   onSyncLeavePayrollDeduction,
 }: LeaveManagementViewProps) {
+  const { confirmAction } = useFeedback();
   const [activeTab, setActiveTab] = useState<LeaveTab>('requests');
   const [data, setData] = useState<LeaveDataState>(() => blankLeaveData(activeEntityId));
   const [isLoading, setIsLoading] = useState(false);
@@ -564,7 +566,7 @@ export default function LeaveManagementView({
     onShowNotification('Leave Request Created', `${record.leaveType} request for ${record.employeeName} is pending approval.`);
   };
 
-  const handleUpdateLeaveStatus = async (request: LeaveRequestRecord, status: 'Approved' | 'Rejected') => {
+  const applyLeaveStatus = async (request: LeaveRequestRecord, status: 'Approved' | 'Rejected') => {
     if (status === 'Rejected') {
       const updated = { ...request, status, reviewedAt: getGmt8Timestamp(), reviewedBy: 'Admin', updatedAt: getGmt8Timestamp() };
       await persistRecord(
@@ -656,6 +658,18 @@ export default function LeaveManagementView({
     }
 
     onShowNotification('Request Approved', `${request.leaveType} request was approved${payrollDeductions.length ? ' and synced to payroll deductions.' : '.'}`);
+  };
+
+  const handleUpdateLeaveStatus = async (request: LeaveRequestRecord, status: 'Approved' | 'Rejected') => {
+    await confirmAction({
+      title: status === 'Approved' ? 'Approve Leave Request' : 'Reject Leave Request',
+      message: status === 'Approved'
+        ? `Approve ${request.leaveType} for ${request.employeeName}? This will update the leave balance and may create a payroll deduction.`
+        : `Reject ${request.leaveType} for ${request.employeeName}?`,
+      tone: status === 'Rejected' ? 'danger' : 'warning',
+      confirmLabel: status === 'Approved' ? 'Approve Request' : 'Reject Request',
+      onConfirm: () => applyLeaveStatus(request, status),
+    });
   };
 
   const addOilEmployee = () => {
@@ -761,7 +775,7 @@ export default function LeaveManagementView({
     onShowNotification(status === 'Draft' ? 'Off in Lieu Saved' : 'Off in Lieu Submitted', `${entries.length} OT row(s) saved.`);
   };
 
-  const handleUpdateOffInLieuStatus = async (request: OffInLieuRequest, status: 'Approved' | 'Rejected') => {
+  const applyOffInLieuStatus = async (request: OffInLieuRequest, status: 'Approved' | 'Rejected') => {
     const entries = data.offInLieuEntries.filter((entry) => entry.requestId === request.id);
     const updatedRequest = { ...request, status, updatedAt: getGmt8Timestamp() };
     const updatedEntries = entries.map((entry) => ({ ...entry, status, updatedAt: getGmt8Timestamp() }));
@@ -798,6 +812,18 @@ export default function LeaveManagementView({
       ]
     );
     onShowNotification(status === 'Approved' ? 'Off in Lieu Approved' : 'Off in Lieu Rejected', status === 'Approved' ? `${request.totalDays} replacement leave day(s) credited.` : 'The Off in Lieu request was rejected.');
+  };
+
+  const handleUpdateOffInLieuStatus = async (request: OffInLieuRequest, status: 'Approved' | 'Rejected') => {
+    await confirmAction({
+      title: status === 'Approved' ? 'Approve Off in Lieu' : 'Reject Off in Lieu',
+      message: status === 'Approved'
+        ? `Approve ${request.totalDays} replacement leave day(s)? This will credit Replacement Leave to the selected employees.`
+        : 'Reject this Off in Lieu request?',
+      tone: status === 'Rejected' ? 'danger' : 'warning',
+      confirmLabel: status === 'Approved' ? 'Approve Off in Lieu' : 'Reject Request',
+      onConfirm: () => applyOffInLieuStatus(request, status),
+    });
   };
 
   const renderStatCards = () => (

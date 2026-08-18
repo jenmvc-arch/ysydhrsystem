@@ -288,6 +288,123 @@ export interface Candidate {
   stage: 'Applied' | 'Interviewing' | 'Offered' | 'Onboarding';
   progress: number;
   dateJoined: string;
+  pipelineStatus?: CandidatePipelineStatus;
+  pipelineUpdatedAt?: string;
+  receivedAt?: string;
+  appliedAt?: string;
+  kivNotes?: string;
+  kivFollowUpDate?: string;
+  rejectionReason?: string;
+}
+
+export type CandidatePipelineStatus =
+  | 'applied'
+  | 'shortlisted'
+  | 'kiv'
+  | 'interview_scheduled'
+  | 'interview_cancelled'
+  | 'interview_no_show'
+  | 'interview_withdrew'
+  | 'interview_passed'
+  | 'offer_preparing'
+  | 'offer_sent'
+  | 'offer_accepted'
+  | 'offer_rejected'
+  | 'onboarding'
+  | 'rejected';
+
+export type CandidateInterviewStatus =
+  | 'scheduled'
+  | 'cancelled'
+  | 'no_show'
+  | 'withdrew'
+  | 'completed';
+
+export type CandidateOfferStatus =
+  | 'preparing'
+  | 'sent'
+  | 'accepted'
+  | 'rejected';
+
+export type CandidateShareLinkKind = 'interview' | 'onboarding';
+export type CandidateShareDeliveryChannel = 'copy' | 'native' | 'email' | 'whatsapp';
+
+export interface CandidatePipelineHistory {
+  id: string;
+  candidateId: string;
+  previousStatus?: CandidatePipelineStatus;
+  newStatus: CandidatePipelineStatus;
+  eventType: string;
+  notes?: string;
+  actorName?: string;
+  createdAt: string;
+}
+
+export interface CandidateInterview {
+  id: string;
+  candidateId: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  meetingLink?: string;
+  notes?: string;
+  status: CandidateInterviewStatus;
+  cancellationReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CandidateEvaluation {
+  id: string;
+  candidateId: string;
+  evaluatorName: string;
+  evaluatorDesignation: string;
+  evaluationDate: string;
+  technicalScore: number;
+  communicationScore: number;
+  culturalFitScore: number;
+  leadershipScore: number;
+  overallRecommendation: 'kiv' | 'reject' | 'offer';
+  additionalComments?: string;
+  updatedAt: string;
+}
+
+export interface CandidateOffer {
+  id: string;
+  candidateId: string;
+  status: CandidateOfferStatus;
+  statusUpdatedAt: string;
+  responseNotes?: string;
+  rejectionReason?: string;
+}
+
+export interface CandidateShareLink {
+  id: string;
+  candidateId: string;
+  kind: CandidateShareLinkKind;
+  token: string;
+  url: string;
+  expiresAt: string;
+  createdAt: string;
+  invalidatedAt?: string;
+}
+
+export interface CandidateShareDelivery {
+  id: string;
+  shareLinkId: string;
+  candidateId: string;
+  channel: CandidateShareDeliveryChannel;
+  handoffStatus: 'ready' | 'completed' | 'failed';
+  createdAt: string;
+  error?: string;
+}
+
+export interface HiringPipelineData {
+  histories: CandidatePipelineHistory[];
+  interviews: CandidateInterview[];
+  evaluations: CandidateEvaluation[];
+  offers: CandidateOffer[];
+  shareLinks: CandidateShareLink[];
+  shareDeliveries: CandidateShareDelivery[];
 }
 
 export type PCBProcessingMode =

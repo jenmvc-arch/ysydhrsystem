@@ -11,7 +11,6 @@ import {
   X, 
   Settings, 
   HelpCircle, 
-  CheckCircle, 
   AlertCircle,
   Clock,
   Briefcase,
@@ -20,7 +19,17 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
-import { AppTab, Employee, EmployeePerformance, ReviewCycle, CorporateEntity, Candidate, PayrollRecord2026 } from './types';
+import {
+  AppTab,
+  Employee,
+  EmployeePerformance,
+  ReviewCycle,
+  CorporateEntity,
+  Candidate,
+  PayrollRecord2026,
+  HiringPipelineData,
+  CandidatePipelineStatus,
+} from './types';
 import { 
   INITIAL_EMPLOYEES, 
   INITIAL_REVIEW_CYCLES, 
@@ -43,6 +52,16 @@ import { formatNricOrPassport } from './lib/employeeInput';
 import { getAppTabFromPath, getPathForAppTab } from './lib/appRoutes';
 import { isAdminPortalRole, isEmployeePortalRole } from './lib/userRoles';
 import type { LeavePayrollDeduction } from './lib/leaveEngine';
+import { useFeedback, NotificationTone } from './context/FeedbackContext';
+import {
+  EMPTY_HIRING_PIPELINE,
+  ensureCandidatePipelineHistory,
+  getBroadStageForPipelineStatus,
+  getCandidatePipelineStatus,
+  getPipelineStatusFromLegacyStage,
+  normalizeHiringPipeline,
+  toIsoDateTime,
+} from './lib/hiringPipeline';
 
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
@@ -192,6 +211,7 @@ export default function App() {
     seedSocsoConfigurationsAndBrackets();
     return true;
   });
+  const { notify } = useFeedback();
 
   // Navigation & View States
   const [activeEntityId, setActiveEntityId] = useState<string>(() => {
@@ -361,6 +381,17 @@ export default function App() {
     }
     return INITIAL_CANDIDATES;
   });
+  const [hiringPipeline, setHiringPipeline] = useState<HiringPipelineData>(() => {
+    const saved = localStorage.getItem('offline_hiring_pipeline');
+    if (saved) {
+      try {
+        return normalizeHiringPipeline(JSON.parse(saved));
+      } catch (_error) {
+        return { ...EMPTY_HIRING_PIPELINE };
+      }
+    }
+    return { ...EMPTY_HIRING_PIPELINE };
+  });
   const [payrollRecords2026, setPayrollRecords2026] = useState<PayrollRecord2026[]>([]);
   const [isSeeding, setIsSeeding] = useState(false);
   const [isLoadingDb, setIsLoadingDb] = useState(isGoogleConfigured);
@@ -385,6 +416,18 @@ export default function App() {
   React.useEffect(() => {
     localStorage.setItem('offline_candidates', JSON.stringify(candidates));
   }, [candidates]);
+
+  React.useEffect(() => {
+    localStorage.setItem('offline_hiring_pipeline', JSON.stringify(hiringPipeline));
+  }, [hiringPipeline]);
+
+  React.useEffect(() => {
+    setHiringPipeline((current) => {
+      const next = ensureCandidatePipelineHistory(candidates, current, currentUserName || 'HR Administrator');
+      if (next.histories.length === current.histories.length) return current;
+      return next;
+    });
+  }, [candidates, currentUserName]);
 
   const employeesWithHistory = React.useMemo(() => {
     return employees.map(emp => {
@@ -492,6 +535,18 @@ export default function App() {
   const filteredCandidates = React.useMemo(() => {
     return candidates.filter(c => c.entityId === activeEntityId);
   }, [candidates, activeEntityId]);
+
+  const filteredHiringPipeline = React.useMemo(() => {
+    const candidateIds = new Set(filteredCandidates.map(candidate => candidate.id));
+    return {
+      histories: hiringPipeline.histories.filter(item => candidateIds.has(item.candidateId)),
+      interviews: hiringPipeline.interviews.filter(item => candidateIds.has(item.candidateId)),
+      evaluations: hiringPipeline.evaluations.filter(item => candidateIds.has(item.candidateId)),
+      offers: hiringPipeline.offers.filter(item => candidateIds.has(item.candidateId)),
+      shareLinks: hiringPipeline.shareLinks.filter(item => candidateIds.has(item.candidateId)),
+      shareDeliveries: hiringPipeline.shareDeliveries.filter(item => candidateIds.has(item.candidateId)),
+    };
+  }, [filteredCandidates, hiringPipeline]);
 
   const filteredPayrollRecords2026 = React.useMemo(() => {
     return payrollRecords2026.filter(r => filteredEmployees.some(e => e.email.toLowerCase() === r.employeeEmail.toLowerCase()));
@@ -1148,10 +1203,27 @@ export default function App() {
             entityId: resolvedEntityId,
             stage: c.stage as any,
             progress: Number(c.progress || 0),
-            dateJoined: c.dateJoined || ''
+            dateJoined: c.dateJoined || '',
+            pipelineStatus: c.pipelineStatus || undefined,
+            pipelineUpdatedAt: c.pipelineUpdatedAt || undefined,
+            receivedAt: c.receivedAt || c.createdAt || undefined,
+            appliedAt: c.appliedAt || c.dateJoined || undefined,
+            kivNotes: c.kivNotes || undefined,
+            kivFollowUpDate: c.kivFollowUpDate || undefined,
+            rejectionReason: c.rejectionReason || undefined
           };
         });
         setCandidates(parsedCandidates);
+        setHiringPipeline(normalizeHiringPipeline({
+          histories: uniqueCandidates.length
+            ? (mainPayload.candidate_pipeline_history || [])
+            : [],
+          interviews: mainPayload.candidate_interviews || [],
+          evaluations: mainPayload.candidate_evaluations || [],
+          offers: mainPayload.candidate_offers || [],
+          shareLinks: mainPayload.candidate_share_links || [],
+          shareDeliveries: mainPayload.candidate_share_deliveries || []
+        }));
 
         // Parse payroll records
         setPayrollRecords2026(uniquePayrollRecords.map((r: any) => ({
@@ -1362,34 +1434,20 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Toast System
-  const [toast, setToast] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'info' }>({
-    show: false,
-    title: '',
-    message: '',
-    type: 'success'
-  });
-
   // New Request Modal state
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestType, setRequestType] = useState('Annual Leave');
   const [requestDesc, setRequestDesc] = useState('');
   const [requestDate, setRequestDate] = useState(() => getGmt8DateString());
 
-  // Trigger toast helper
-  const triggerNotification = (title: string, message: string, type: 'success' | 'info' = 'success') => {
-    setToast({ show: true, title, message, type });
+  // Compatibility bridge for existing modules. New code can use useFeedback directly.
+  const triggerNotification = (
+    title: string,
+    message: string,
+    type: NotificationTone = 'success'
+  ) => {
+    notify({ title, message, tone: type });
   };
-
-  // Dismiss toast after timeout
-  useEffect(() => {
-    if (toast.show) {
-      const timer = setTimeout(() => {
-        setToast(prev => ({ ...prev, show: false }));
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast.show]);
 
   const getScriptUrlForEntity = (entityNameOrId?: string): string | undefined => {
     if (!entityNameOrId) return undefined;
@@ -1400,11 +1458,41 @@ export default function App() {
       : undefined;
   };
 
+  const handleSaveHiringPipeline = async (nextPipeline: HiringPipelineData) => {
+    const normalized = normalizeHiringPipeline(nextPipeline);
+    if (isSupabaseConfigured) {
+      const tables: Array<[keyof HiringPipelineData, string]> = [
+        ['histories', 'candidate_pipeline_history'],
+        ['interviews', 'candidate_interviews'],
+        ['evaluations', 'candidate_evaluations'],
+        ['offers', 'candidate_offers'],
+        ['shareLinks', 'candidate_share_links'],
+        ['shareDeliveries', 'candidate_share_deliveries'],
+      ];
+      try {
+        for (const [key, table] of tables) {
+          for (const record of normalized[key]) {
+            await supabaseClient.upsert(table, record);
+          }
+        }
+      } catch (err: any) {
+        console.error('[Supabase Hiring Pipeline Save] Failed:', err);
+        throw new Error(`Could not save hiring pipeline data: ${err.message || err}`);
+      }
+    }
+    setHiringPipeline(normalized);
+  };
+
   const handleAddCandidate = async (candidateInput: Candidate) => {
+    const now = toIsoDateTime();
     const newCandidate: Candidate = {
       ...candidateInput,
       email: candidateInput.email.trim().toLowerCase(),
-      entityId: candidateInput.entityId || activeEntityId || ''
+      entityId: candidateInput.entityId || activeEntityId || '',
+      pipelineStatus: candidateInput.pipelineStatus || 'applied',
+      pipelineUpdatedAt: now,
+      receivedAt: candidateInput.receivedAt || now,
+      appliedAt: candidateInput.appliedAt || now.slice(0, 10)
     };
 
     if (candidates.some(candidate => candidate.email.toLowerCase() === newCandidate.email)) {
@@ -1439,24 +1527,41 @@ export default function App() {
       }
     }
 
+    const pipelineWithHistory = ensureCandidatePipelineHistory(
+      [newCandidate],
+      hiringPipeline,
+      currentUserName || 'HR Administrator'
+    );
+    await handleSaveHiringPipeline(pipelineWithHistory);
     setCandidates(prev => [...prev, newCandidate]);
   };
 
   const handleUpdateCandidate = async (id: string, updates: Partial<Candidate>) => {
+    const candidateObj = candidates.find(c => c.id === id);
+    const requestedStatus = updates.pipelineStatus || (
+      updates.stage ? getPipelineStatusFromLegacyStage(updates.stage) : undefined
+    );
+    const normalizedUpdates: Partial<Candidate> = requestedStatus
+      ? {
+        ...updates,
+        pipelineStatus: requestedStatus,
+        stage: updates.stage || getBroadStageForPipelineStatus(requestedStatus),
+        pipelineUpdatedAt: updates.pipelineUpdatedAt || toIsoDateTime()
+      }
+      : updates;
     if (isSupabaseConfigured) {
       try {
-        await supabaseClient.update('candidates', id, updates, 'id');
+        await supabaseClient.update('candidates', id, normalizedUpdates, 'id');
       } catch (err: any) {
         console.error('[Supabase Candidate Update] Failed:', err);
         throw new Error(`Could not update candidate in Supabase: ${err.message || err}`);
       }
     } else if (isGoogleConfigured) {
       try {
-        const candidateObj = candidates.find(c => c.id === id);
-        const scriptUrl = getScriptUrlForEntity(updates.entityId || candidateObj?.entityId);
-        const payloadUpdates: any = { ...updates };
-        if (updates.entityId !== undefined) {
-          payloadUpdates.entityName = updates.entityId;
+        const scriptUrl = getScriptUrlForEntity(normalizedUpdates.entityId || candidateObj?.entityId);
+        const payloadUpdates: any = { ...normalizedUpdates };
+        if (normalizedUpdates.entityId !== undefined) {
+          payloadUpdates.entityName = normalizedUpdates.entityId;
           delete payloadUpdates.entityId;
         }
         await googleSheetsClient.update('candidates', id, payloadUpdates, 'id', scriptUrl);
@@ -1466,7 +1571,31 @@ export default function App() {
       }
     }
 
-    setCandidates(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    setCandidates(prev => prev.map(c => c.id === id ? { ...c, ...normalizedUpdates } : c));
+  };
+
+  const handleDeleteCandidate = async (id: string) => {
+    const target = candidates.find(candidate => candidate.id === id);
+    if (!target) throw new Error('The candidate record could not be found.');
+
+    if (isSupabaseConfigured) {
+      await supabaseClient.delete('candidates', id, 'id');
+    } else if (isGoogleConfigured) {
+      const scriptUrl = getScriptUrlForEntity(target.entityId);
+      await googleSheetsClient.delete('candidates', id, 'id', scriptUrl);
+    }
+
+    const nextPipeline: HiringPipelineData = {
+      ...hiringPipeline,
+      histories: hiringPipeline.histories.filter(item => item.candidateId !== id),
+      interviews: hiringPipeline.interviews.filter(item => item.candidateId !== id),
+      evaluations: hiringPipeline.evaluations.filter(item => item.candidateId !== id),
+      offers: hiringPipeline.offers.filter(item => item.candidateId !== id),
+      shareLinks: hiringPipeline.shareLinks.filter(item => item.candidateId !== id),
+      shareDeliveries: hiringPipeline.shareDeliveries.filter(item => item.candidateId !== id)
+    };
+    await handleSaveHiringPipeline(nextPipeline);
+    setCandidates(prev => prev.filter(candidate => candidate.id !== id));
   };
 
   const handleAddEmployee = async (employeeInput: Employee) => {
@@ -2452,29 +2581,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Toast Notification HUD */}
-      {toast.show && (
-        <div className="fixed top-4 right-4 z-50 max-w-sm bg-white border border-neutral-border shadow-2xl rounded-lg p-4 flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
-          <div className="shrink-0 mt-0.5">
-            {toast.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-primary" />
-            )}
-          </div>
-          <div className="flex-1 text-left text-xs">
-            <h4 className="font-bold text-on-background leading-tight">{toast.title}</h4>
-            <p className="text-on-surface-variant mt-0.5">{toast.message}</p>
-          </div>
-          <button 
-            onClick={() => setToast(prev => ({ ...prev, show: false }))}
-            className="text-outline hover:text-on-surface transition-colors cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
       {/* Main Responsive Left Sidebar Navigation */}
       <Sidebar 
         currentTab={currentTab} 
@@ -2676,8 +2782,11 @@ export default function App() {
               onAddEmployee={handleAddEmployee}
               employees={filteredEmployees}
               candidates={filteredCandidates}
+              hiringPipeline={filteredHiringPipeline}
               onAddCandidate={handleAddCandidate}
               onUpdateCandidate={handleUpdateCandidate}
+              onSaveHiringPipeline={handleSaveHiringPipeline}
+              onDeleteCandidate={handleDeleteCandidate}
               onUpdateEmployee={handleUpdateEmployeeSalary}
               currentUserName={currentUserName}
               currentUserEmail={currentUserEmail}

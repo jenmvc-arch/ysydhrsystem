@@ -21,8 +21,10 @@ import {
 } from 'lucide-react';
 import { SOCSOConfiguration, SOCSOBracket, SOCSOPhase, SOCSOContributionSchedule, SOCSOContributionBracket } from '../types';
 import { generateOfficialSocsoBrackets } from '../data';
+import { useFeedback } from '../context/FeedbackContext';
 
 export default function SocsoConfigAdminView() {
+  const { showError, showSuccess, showWarning, confirmAction } = useFeedback();
   const [configs, setConfigs] = useState<SOCSOConfiguration[]>([]);
   const [brackets, setBrackets] = useState<SOCSOBracket[]>([]);
   
@@ -111,7 +113,7 @@ export default function SocsoConfigAdminView() {
 
   const handleCreateConfig = () => {
     if (!newConfig.id || !newConfig.effectiveFrom || !newConfig.effectiveTo) {
-      alert('Please fill out Config ID and date range fields.');
+      showWarning('Configuration Required', 'Please fill out Config ID and date range fields.');
       return;
     }
 
@@ -123,7 +125,7 @@ export default function SocsoConfigAdminView() {
     });
 
     if (isOverlap) {
-      alert('Error: The effective date range overlaps with an existing configuration of the same category.');
+      showError('Configuration Overlap', 'The effective date range overlaps with an existing configuration of the same category.');
       return;
     }
 
@@ -149,13 +151,13 @@ export default function SocsoConfigAdminView() {
 
     saveToStorage([...configs, created], [...brackets, ...autoBrackets]);
     setIsCreatingConfig(false);
-    alert('Statutory configuration draft created successfully with auto-populated PERKESO brackets!');
+    showSuccess('Configuration Draft Created', 'Statutory configuration draft created successfully with auto-populated PERKESO brackets.');
   };
 
   const handleApprove = (id: string) => {
     const continuityErrors = validateBracketsContinuity(id);
     if (continuityErrors.length > 0) {
-      alert('Cannot approve configuration due to continuity errors:\n' + continuityErrors.join('\n'));
+      showError('Configuration Cannot Be Approved', continuityErrors.join(' '));
       return;
     }
 
@@ -173,7 +175,7 @@ export default function SocsoConfigAdminView() {
     });
 
     saveToStorage(updated, brackets);
-    alert('Configuration status updated to Approved.');
+    showSuccess('Configuration Approved', 'Configuration status updated to Approved.');
   };
 
   const handleDeactivate = (id: string) => {
@@ -189,14 +191,22 @@ export default function SocsoConfigAdminView() {
     });
 
     saveToStorage(updated, brackets);
-    alert('Configuration deactivated.');
+    showSuccess('Configuration Deactivated', 'Configuration deactivated.');
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Are you sure you want to delete this configuration and all its associated brackets?')) return;
-    const updatedConfigs = configs.filter(c => c.id !== id);
-    const updatedBrackets = brackets.filter(b => b.configurationId !== id);
-    saveToStorage(updatedConfigs, updatedBrackets);
+  const handleDelete = async (id: string) => {
+    await confirmAction({
+      title: 'Delete Configuration',
+      message: 'Are you sure you want to delete this configuration and all its associated brackets? This action cannot be undone.',
+      tone: 'danger',
+      confirmLabel: 'Delete Configuration',
+      onConfirm: () => {
+        const updatedConfigs = configs.filter(c => c.id !== id);
+        const updatedBrackets = brackets.filter(b => b.configurationId !== id);
+        saveToStorage(updatedConfigs, updatedBrackets);
+        showSuccess('Configuration Deleted', 'The configuration and associated brackets were removed.');
+      },
+    });
   };
 
   const handleImportCsv = () => {
@@ -476,7 +486,7 @@ export default function SocsoConfigAdminView() {
       return s;
     });
     saveSchedulesToStorage(updated, scheduleBrackets);
-    alert('Schedule approved successfully!');
+    showSuccess('Schedule Approved', 'Schedule approved successfully.');
   };
 
   const handleActivateSchedule = (scheduleId: string) => {
@@ -498,7 +508,7 @@ export default function SocsoConfigAdminView() {
       return s;
     });
     saveSchedulesToStorage(updated, scheduleBrackets);
-    alert('Schedule activated successfully! All other active schedules have been archived.');
+    showSuccess('Schedule Activated', 'Schedule activated successfully. All other active schedules have been archived.');
   };
 
   const getComparison = () => {

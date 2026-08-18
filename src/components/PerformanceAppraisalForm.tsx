@@ -26,6 +26,7 @@ import {
   PerformanceAppraisalDraft,
   saveAppraisalDraft,
 } from '../lib/performanceAppraisalDraft';
+import { useFeedback } from '../context/FeedbackContext';
 
 interface PerformanceAppraisalFormProps {
   employee: Employee;
@@ -142,6 +143,7 @@ export default function PerformanceAppraisalForm({
   onSavePerformance,
   onShowNotification,
 }: PerformanceAppraisalFormProps) {
+  const { confirmAction } = useFeedback();
   const [draft, setDraft] = useState<PerformanceAppraisalDraft>(() =>
     loadAppraisalDraft(employee, reviewCycle, performance, currentUserName || '')
   );
@@ -273,12 +275,19 @@ export default function PerformanceAppraisalForm({
     }));
   };
 
-  const removeKpiCategory = (categoryId: string) => {
-    if (typeof window !== 'undefined' && !window.confirm('Remove this KPI category and all rows?')) return;
-    setDraft((prev) => ({
-      ...prev,
-      kpiCategories: prev.kpiCategories.filter((category) => category.id !== categoryId),
-    }));
+  const removeKpiCategory = async (categoryId: string) => {
+    await confirmAction({
+      title: 'Remove KPI Category',
+      message: 'Remove this KPI category and all rows? This action cannot be undone.',
+      tone: 'danger',
+      confirmLabel: 'Remove Category',
+      onConfirm: () => {
+        setDraft((prev) => ({
+          ...prev,
+          kpiCategories: prev.kpiCategories.filter((category) => category.id !== categoryId),
+        }));
+      },
+    });
   };
 
   const addKpiRow = (categoryId: string) => {

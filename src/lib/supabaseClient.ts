@@ -42,6 +42,12 @@ export interface SupabaseDataPayload {
   audit_logs: any[];
   candidates?: any[];
   payroll_records_2026?: any[];
+  candidate_pipeline_history?: any[];
+  candidate_interviews?: any[];
+  candidate_evaluations?: any[];
+  candidate_offers?: any[];
+  candidate_share_links?: any[];
+  candidate_share_deliveries?: any[];
 }
 
 function extractMissingColumn(errorMessage: string): string | null {
@@ -99,13 +105,32 @@ export const supabaseClient = {
     }
     console.log('[Supabase Client] Fetching all tables...');
 
-    const [entitiesRes, employeesRes, candidatesRes, performancesRes, payrollRes, logsRes] = await Promise.all([
+    const [
+      entitiesRes,
+      employeesRes,
+      candidatesRes,
+      performancesRes,
+      payrollRes,
+      logsRes,
+      pipelineHistoryRes,
+      interviewsRes,
+      evaluationsRes,
+      offersRes,
+      shareLinksRes,
+      shareDeliveriesRes
+    ] = await Promise.all([
       supabase.from('corporate_entities').select('*'),
       supabase.from('employees').select('*'),
       supabase.from('candidates').select('*'),
       supabase.from('performances').select('*'),
       supabase.from('payroll_records_2026').select('*'),
-      supabase.from('audit_logs').select('*')
+      supabase.from('audit_logs').select('*'),
+      supabase.from('candidate_pipeline_history').select('*'),
+      supabase.from('candidate_interviews').select('*'),
+      supabase.from('candidate_evaluations').select('*'),
+      supabase.from('candidate_offers').select('*'),
+      supabase.from('candidate_share_links').select('*'),
+      supabase.from('candidate_share_deliveries').select('*')
     ]);
 
     if (entitiesRes.error) console.error('[Supabase Error] Entities:', entitiesRes.error);
@@ -120,7 +145,13 @@ export const supabaseClient = {
       // Credentials are server-only. LoginView uses the secure admin session
       // endpoint or employee Auth instead of loading public.users.password.
       users: [],
-      audit_logs: (logsRes.data || []).map(toCamelCase)
+      audit_logs: (logsRes.data || []).map(toCamelCase),
+      candidate_pipeline_history: (pipelineHistoryRes.data || []).map(toCamelCase),
+      candidate_interviews: (interviewsRes.data || []).map(toCamelCase),
+      candidate_evaluations: (evaluationsRes.data || []).map(toCamelCase),
+      candidate_offers: (offersRes.data || []).map(toCamelCase),
+      candidate_share_links: (shareLinksRes.data || []).map(toCamelCase),
+      candidate_share_deliveries: (shareDeliveriesRes.data || []).map(toCamelCase)
     };
   },
 

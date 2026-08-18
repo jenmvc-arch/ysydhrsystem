@@ -67,6 +67,7 @@ import {
   EmployeeAccountSummary,
 } from '../lib/employeeAccountTypes';
 import { canManageAppAccess } from '../lib/userRoles';
+import { useFeedback } from '../context/FeedbackContext';
 import EmployeeAvatar from './EmployeeAvatar';
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
@@ -242,6 +243,7 @@ export default function EmployeeDirectoryView({
   activeEntityId,
   currentUserEmail
 }: EmployeeDirectoryViewProps) {
+  const { confirmAction } = useFeedback();
   const activeEmployees = getCurrentActiveEmployees(employees);
   const [searchQuery, setSearchQuery] = useState('');
   const currentMonth = new Date().getMonth() + 1;
@@ -1474,20 +1476,26 @@ export default function EmployeeDirectoryView({
    };
 
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to terminate/remove ${name} from active payroll directory?`)) {
-      setSavingAction(`delete:${id}`);
-      try {
-        await onDeleteEmployee(id);
-        onShowNotification('Employee Deleted', `${name} removed successfully.`);
-        if (selectedEmployeeId === id) {
-          setIsDetailOpen(false);
+    await confirmAction({
+      title: 'Terminate Employee',
+      message: `Are you sure you want to terminate/remove ${name} from the active payroll directory?`,
+      tone: 'danger',
+      confirmLabel: 'Terminate Employee',
+      onConfirm: async () => {
+        setSavingAction(`delete:${id}`);
+        try {
+          await onDeleteEmployee(id);
+          onShowNotification('Employee Deleted', `${name} removed successfully.`);
+          if (selectedEmployeeId === id) {
+            setIsDetailOpen(false);
+          }
+        } catch (error) {
+          console.error('[Employee Delete] Failed:', error);
+        } finally {
+          setSavingAction(null);
         }
-      } catch (error) {
-        console.error('[Employee Delete] Failed:', error);
-      } finally {
-        setSavingAction(null);
-      }
-    }
+      },
+    });
   };
 
   // Execute Career Progression Event update

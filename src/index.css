@@ -280,6 +280,47 @@
   background-color: rgba(130, 85, 0, 0.44);
 }
 
+.Input {
+  width: 100%;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.625rem 0.75rem;
+  color: var(--color-on-background);
+  font-size: 0.75rem;
+  outline: none;
+}
+.Input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+.ButtonPrimary,
+.ButtonSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+.ButtonPrimary {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+.ButtonPrimary:hover {
+  opacity: 0.9;
+}
+.ButtonSecondary {
+  border: 1px solid var(--color-outline);
+  background: #ffffff;
+  color: var(--color-on-surface);
+}
+.ButtonSecondary:hover {
+  background: var(--color-surface-container-low);
+}
+
 @media print {
   html, body {
     background-color: white !important;

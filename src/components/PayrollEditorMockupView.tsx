@@ -47,6 +47,7 @@ import {
   type YtdBreakdown
 } from '../data';
 import { formatToDDMMMYYYY, getGmt8Timestamp } from '../lib/dateUtils';
+import { useFeedback } from '../context/FeedbackContext';
 
 interface PayrollEditorMockupViewProps {
   employees: Employee[];
@@ -460,6 +461,7 @@ export default function PayrollEditorMockupView({
   onBack,
   onShowNotification
 }: PayrollEditorMockupViewProps) {
+  const { confirmAction } = useFeedback();
   const now = new Date();
   const isEmbedded = mode === 'embedded';
   const [internalSelectedPayPeriod, setInternalSelectedPayPeriod] = useState(
@@ -854,7 +856,7 @@ export default function PayrollEditorMockupView({
     };
   };
 
-  const saveDemo = async () => {
+  const persistPayrollDraft = async () => {
     if (!editingDraft) return;
     const recordToSave = buildPayrollRecord(editingDraft);
 
@@ -880,6 +882,21 @@ export default function PayrollEditorMockupView({
         : `Your ${documentProfile.documentType.toLowerCase()} changes have been saved in the payroll editor session.`
     );
     onGeneratedPayrollRecord?.(recordToSave);
+  };
+
+  const saveDemo = async () => {
+    if (!isSeparatePayoutMode) {
+      await persistPayrollDraft();
+      return;
+    }
+
+    await confirmAction({
+      title: 'Generate Separate Payout',
+      message: `Save and generate ${separatePayoutConfig?.title || 'this separate payout'}? It will be stored as a separate payroll record and will not overwrite the regular monthly payroll.`,
+      tone: 'warning',
+      confirmLabel: 'Save and Generate',
+      onConfirm: persistPayrollDraft,
+    });
   };
 
   const cancelEditing = () => {

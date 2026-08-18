@@ -22,12 +22,14 @@ import {
   isRoleAllowedForLoginPortal,
   LoginPortal,
 } from '../lib/userRoles';
+import { useFeedback } from '../context/FeedbackContext';
 
 interface LoginViewProps {
   onLoginSuccess: (user: UserAccount) => void;
 }
 
 export default function LoginView({ onLoginSuccess }: LoginViewProps) {
+  const { showInfoModal } = useFeedback();
   const [loginPortal, setLoginPortal] = useState<LoginPortal>('admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -481,11 +483,13 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                 href="#forgot" 
                 onClick={(e) => {
                   e.preventDefault();
-                  alert(
-                    loginPortal === 'admin'
+                  void showInfoModal({
+                    title: 'Password Recovery',
+                    message: loginPortal === 'admin'
                       ? 'Admin accounts are provisioned by HR.'
-                      : 'Employee accounts use the company-issued username and temporary password.\n\nIf you do not have your credentials, please contact HR.'
-                  );
+                      : 'Employee accounts use the company-issued username and temporary password. If you do not have your credentials, please contact HR.',
+                    acknowledgeLabel: 'Understood',
+                  });
                 }}
                 className="text-sm text-primary hover:text-primary-container font-semibold transition-colors"
               >
