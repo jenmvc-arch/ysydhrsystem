@@ -197,24 +197,25 @@ export default function DashboardView({
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
         <div>
-          <h1 className="text-3xl font-bold text-on-background tracking-tight">HR Enterprise Dashboard</h1>
-          <p className="text-on-surface-variant mt-1">
-            Welcome back! You have <span className="font-semibold text-primary">{reviewsPendingCount} performance reviews</span> pending for the {currentMonthName} pay period.
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary mb-1">Overview</p>
+          <h1 className="text-4xl font-bold text-on-background tracking-tight">Your people, at a glance</h1>
+          <p className="text-on-surface-variant mt-2 text-[15px]">
+            Welcome back. You have <span className="font-semibold text-primary">{reviewsPendingCount} performance reviews</span> pending for {currentMonthName}.
           </p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={onOpenRequestModal}
-            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded hover:bg-primary-container transition-colors flex items-center gap-2"
+            className="px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-teal-800 transition-colors flex items-center gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            New Request
+            New request
           </button>
         </div>
       </div>
 
       {/* Dynamic Month/Year Slicer Controls */}
-      <div className="bg-white border border-neutral-border p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs text-left">
+      <div className="bg-white/80 backdrop-blur border border-neutral-border p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs text-left">
         <div className="flex items-center gap-2 text-primary font-bold">
           <Calendar className="w-4 h-4 text-primary" />
           <span className="text-xs uppercase tracking-wider">Dashboard View Period</span>
@@ -253,7 +254,7 @@ export default function DashboardView({
 
       {/* Dedicated Corporate Subsidiary Details Card */}
       {selectedEntityId !== 'all' && activeEntity && (
-        <div className="bg-white border border-neutral-border rounded-lg p-6 shadow-sm text-left grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-4 duration-300">
+        <div className="bg-white border border-neutral-border rounded-2xl p-6 shadow-sm text-left grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-4 duration-300">
           
           {/* Subsidiary Profile */}
           <div className="md:col-span-1 border-b md:border-b-0 md:border-r border-neutral-border pb-4 md:pb-0 md:pr-6 flex flex-col justify-between">
@@ -295,7 +296,7 @@ export default function DashboardView({
           {/* Detailed Tax & Social Security Registry Details */}
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             
-            <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-border/40 space-y-3">
+            <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-border/40 space-y-3">
               <span className="font-bold text-[10px] text-on-surface-variant uppercase tracking-wider block border-b border-neutral-border/40 pb-1">Statutory Registrations</span>
               <div className="space-y-2 font-mono text-[11px]">
                 <div className="flex justify-between items-center">
@@ -309,7 +310,7 @@ export default function DashboardView({
               </div>
             </div>
 
-            <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-border/40 space-y-3">
+            <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-border/40 space-y-3">
               <span className="font-bold text-[10px] text-on-surface-variant uppercase tracking-wider block border-b border-neutral-border/40 pb-1">Social Security Credentials</span>
               <div className="space-y-2 font-mono text-[11px]">
                 <div className="flex justify-between items-center">
@@ -343,7 +344,7 @@ export default function DashboardView({
         {/* Card 1: Total Workforce */}
         <div 
           onClick={() => onNavigate('directory')}
-          className="bg-surface-container-lowest p-5 rounded-lg border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary transition-all cursor-pointer group"
+          className="bg-white p-5 rounded-2xl border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary hover:-translate-y-0.5 transition-all cursor-pointer group"
           id="stat-card-workforce"
         >
           <div className="flex justify-between items-start">
@@ -365,7 +366,7 @@ export default function DashboardView({
         {/* Card 2: Total Payout */}
         <div 
           onClick={() => onNavigate('payroll')}
-          className="bg-surface-container-lowest p-5 rounded-lg border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary transition-all cursor-pointer group"
+          className="bg-white p-5 rounded-2xl border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary hover:-translate-y-0.5 transition-all cursor-pointer group"
           id="stat-card-payroll"
         >
           <div className="flex justify-between items-start">
@@ -386,7 +387,7 @@ export default function DashboardView({
         {/* Card 3: Reviews Pending */}
         <div 
           onClick={() => onNavigate('performance')}
-          className="bg-surface-container-lowest p-5 rounded-lg border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary transition-all cursor-pointer group"
+          className="bg-white p-5 rounded-2xl border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary hover:-translate-y-0.5 transition-all cursor-pointer group"
           id="stat-card-pending-reviews"
         >
           <div className="flex justify-between items-start">
@@ -407,7 +408,7 @@ export default function DashboardView({
         {/* Card 4: Reviews Completed */}
         <div 
           onClick={() => onNavigate('performance')}
-          className="bg-surface-container-lowest p-5 rounded-lg border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary transition-all cursor-pointer group"
+          className="bg-white p-5 rounded-2xl border border-neutral-border shadow-sm flex flex-col justify-between hover:border-primary hover:-translate-y-0.5 transition-all cursor-pointer group"
           id="stat-card-completed-reviews"
         >
           <div className="flex justify-between items-start">
@@ -433,7 +434,7 @@ export default function DashboardView({
         <div className="lg:col-span-8 space-y-6">
           
           {/* Payroll Trend Chart */}
-          <div className="bg-white p-6 rounded-lg border border-neutral-border shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-neutral-border shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-semibold text-lg text-on-background">
@@ -520,7 +521,7 @@ export default function DashboardView({
 
           {/* Quick Informational / Action Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg border border-neutral-border shadow-sm">
+            <div className="bg-white p-6 rounded-2xl border border-neutral-border shadow-sm">
               <h3 className="font-semibold text-lg mb-4 text-on-background">Organization Directives</h3>
               <div className="space-y-4">
                 <div className="p-3 bg-parchment/40 rounded border-l-4 border-secondary text-sm">
@@ -537,7 +538,7 @@ export default function DashboardView({
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg border border-neutral-border shadow-sm">
+            <div className="bg-white p-6 rounded-2xl border border-neutral-border shadow-sm">
               <h3 className="font-semibold text-lg mb-4 text-on-background">Review Cycles Overview</h3>
               <div className="space-y-3">
                 {reviewCycles.map((cycle) => (
@@ -567,7 +568,7 @@ export default function DashboardView({
         <div className="lg:col-span-4 space-y-6">
           
           {/* Quick Actions Panel */}
-          <div className="bg-white p-6 rounded-lg border border-neutral-border shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-neutral-border shadow-sm">
             <h3 className="font-semibold text-lg text-on-background mb-4 pb-2 border-b border-surface-container">Quick Workflows</h3>
             <div className="space-y-3">
               <button 
@@ -603,7 +604,7 @@ export default function DashboardView({
           </div>
 
           {/* Quick Payslip Selector list */}
-          <div className="bg-white p-6 rounded-lg border border-neutral-border shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-neutral-border shadow-sm">
             <h3 className="font-semibold text-lg text-on-background mb-1">Quick Payslip Records</h3>
             <p className="text-xs text-on-surface-variant mb-4">
               {selectedEntityId === 'all' 
