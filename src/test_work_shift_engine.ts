@@ -7,6 +7,7 @@ import {
   getDefaultHalfDayEndTime,
   getActiveWorkShiftGroup,
   getWorkShiftDayForDate,
+  isMissingWorkShiftTableError,
   mergeWithDefaultWorkShiftData,
   validateWorkShiftGroup,
 } from './lib/workShiftEngine';
@@ -19,6 +20,8 @@ assert.equal(calculateShiftHours('22:00', '06:00', 'full_day', true), 7);
 assert.equal(calculateShiftHours('09:00', '09:00', 'full_day', true), 0);
 assert.equal(calculateShiftHours('09:00', '18:00', 'rest', false), 0);
 assert.equal(getDefaultHalfDayEndTime('22:30'), '02:30');
+assert.equal(isMissingWorkShiftTableError(new Error("Could not find the table 'public.work_shift_groups' in the schema cache")), true);
+assert.equal(isMissingWorkShiftTableError(new Error('permission denied for table employees')), false);
 assert.equal(calculateWeeklyHours(data.groups[0].id, data), 40);
 assert.deepEqual(validateWorkShiftGroup(data.groups[0].id, data), []);
 assert.equal(getActiveWorkShiftGroup('employee-1', data)?.name, 'Malaysia Standard');

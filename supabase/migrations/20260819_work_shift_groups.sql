@@ -92,3 +92,5 @@ DROP POLICY IF EXISTS "Allow all access to public_holiday_groups" ON public.publ
 CREATE POLICY "Allow all access to public_holiday_groups" ON public.public_holiday_groups FOR ALL USING (true) WITH CHECK (true);
 DROP POLICY IF EXISTS "Allow all access to public_holidays" ON public.public_holidays;
 CREATE POLICY "Allow all access to public_holidays" ON public.public_holidays FOR ALL USING (true) WITH CHECK (true);
+
+NOTIFY pgrst, 'reload schema';

@@ -62,6 +62,7 @@ const emptyWorkShiftData = (): WorkShiftData => ({
 });
 
 const localKey = (entityId: string) => `work_shift_engine_${entityId || 'default'}`;
+const unavailableTables = new Set<string>();
 
 const makeId = (prefix: string) => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -108,6 +109,11 @@ const writeLocal = (entityId: string, data: WorkShiftData) => {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(localKey(entityId), JSON.stringify(data));
   }
+};
+
+export const isMissingWorkShiftTableError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /schema cache|could not find the table|relation .* does not exist|pgrst205|42p01/i.test(message);
 };
 
 const toLocalDateString = (date: Date) => (
@@ -434,11 +440,28 @@ export const workShiftService = {
     writeLocal(entityId, data);
   },
   async upsert(tableKey: keyof typeof TABLES, record: { id: string }) {
-    return supabaseClient.upsert(TABLES[tableKey], record);
+    const table = TABLES[tableKey];
+    if (!isSupabaseConfigured || unavailableTables.has(table)) return record;
+    try {
+      return await supabaseClient.upsert(table, record);
+    } catch (error) {
+      if (!isMissingWorkShiftTableError(error)) throw error;
+      unavailableTables.add(table);
+      console.warn(`[Work Shift Service] ${table} is unavailable; using local persistence until the migration is applied.`);
+      return record;
+    }
   },
   async delete(tableKey: keyof typeof TABLES, id: string) {
     if (!isSupabaseConfigured) return;
-    await supabaseClient.delete(TABLES[tableKey], id);
+    const table = TABLES[tableKey];
+    if (unavailableTables.has(table)) return;
+    try {
+      await supabaseClient.delete(table, id);
+    } catch (error) {
+      if (!isMissingWorkShiftTableError(error)) throw error;
+      unavailableTables.add(table);
+      console.warn(`[Work Shift Service] ${table} is unavailable; skipping remote delete until the migration is applied.`);
+    }
   },
 };
 
