@@ -18,13 +18,17 @@ import {
 } from 'lucide-react';
 import { Employee } from '../types';
 import EmployeeAvatar from './EmployeeAvatar';
-import type { LeaveRequestRecord as LeaveRequest } from '../lib/leaveEngine';
+import type { WorkShiftData } from '../types';
+import type { LeaveDataState, LeaveRequestRecord as LeaveRequest } from '../lib/leaveEngine';
 import { formatToDDMMMYYYY } from '../lib/dateUtils';
 import { isCurrentActiveEmployee } from '../data';
+import { getWorkShiftDayForDate } from '../lib/workShiftEngine';
 
 interface LeaveCalendarProps {
   requests: LeaveRequest[];
   employees: Employee[];
+  leaveData: LeaveDataState;
+  workShiftData: WorkShiftData;
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -33,7 +37,7 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-export default function LeaveCalendar({ requests, employees }: LeaveCalendarProps) {
+export default function LeaveCalendar({ requests, employees, leaveData: _leaveData, workShiftData }: LeaveCalendarProps) {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -157,6 +161,20 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
     return approvedLeavesByDate[selectedDate] || [];
   }, [selectedDate, approvedLeavesByDate]);
 
+  const selectedDateHolidays = useMemo(() => (
+    workShiftData.holidays.filter((holiday) => (
+      holiday.enabled &&
+      (holiday.holidayDate === selectedDate || holiday.observedDate === selectedDate)
+    ))
+  ), [selectedDate, workShiftData.holidays]);
+
+  const selectedDateRestEmployees = useMemo(() => (
+    employees.filter((employee) => (
+      isCurrentActiveEmployee(employee) &&
+      getWorkShiftDayForDate(employee.id, selectedDate, workShiftData)?.isWorkDay === false
+    ))
+  ), [employees, selectedDate, workShiftData]);
+
   // Active coverage details for selected date
   const shiftPlanningCoverage = useMemo(() => {
     // Group approved leaves of selected day by department
@@ -178,6 +196,7 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
 
     // Determine available backup staff
     const leaveEmployeeIds = new Set(selectedDateLeaves.map(l => l.employeeId));
+    const restEmployeeIds = new Set(selectedDateRestEmployees.map((employee) => employee.id));
     
     const backupsByDept: Record<string, Employee[]> = {};
     selectedDateLeaves.forEach(leave => {
@@ -197,11 +216,15 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
     return {
       warnings,
       backupsByDept,
-      totalEmployees: employees.length,
+      totalEmployees: employees.filter((employee) => isCurrentActiveEmployee(employee)).length,
       absentCount: selectedDateLeaves.length,
-      activeCount: employees.length - selectedDateLeaves.length
+      activeCount: employees.filter((employee) => (
+        isCurrentActiveEmployee(employee) &&
+        !leaveEmployeeIds.has(employee.id) &&
+        !restEmployeeIds.has(employee.id)
+      )).length
     };
-  }, [selectedDateLeaves, employees]);
+  }, [selectedDateLeaves, selectedDateRestEmployees, employees]);
 
   // Color helper for leave types
   const getLeaveColorStyles = (leaveType: string) => {
@@ -343,8 +366,13 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((cell, idx) => {
               const dateLeaves = approvedLeavesByDate[cell.dateString] || [];
+              const dateHolidays = workShiftData.holidays.filter((holiday) => (
+                holiday.enabled &&
+                (holiday.holidayDate === cell.dateString || holiday.observedDate === cell.dateString)
+              ));
               const isSelected = selectedDate === cell.dateString;
               const hasLeaves = dateLeaves.length > 0;
+              const hasHolidays = dateHolidays.length > 0;
               
               return (
                 <button
@@ -371,7 +399,7 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
                     </span>
                     
                     {/* Tiny visual indicators */}
-                    {hasLeaves && (
+                    {(hasLeaves || hasHolidays) && (
                       <div className="flex gap-0.5">
                         {dateLeaves.slice(0, 3).map((l, i) => {
                           const style = getLeaveColorStyles(l.leaveType);
@@ -383,6 +411,7 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
                             />
                           );
                         })}
+                        {hasHolidays && <span className="h-1.5 w-1.5 rounded-full bg-blue-600" title={dateHolidays.map((holiday) => holiday.name).join(', ')} />}
                         {dateLeaves.length > 3 && (
                           <span className="w-1.5 h-1.5 bg-neutral-600 rounded-full flex items-center justify-center text-[5px] text-white">
                             +
@@ -394,6 +423,11 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
 
                   {/* Horizontal small label badges for desktop */}
                   <div className="w-full space-y-0.5 mt-1 overflow-hidden hidden md:block">
+                    {dateHolidays.slice(0, 1).map((holiday) => (
+                      <div key={holiday.id} className="truncate rounded border border-blue-200 bg-blue-50 px-1 py-0.5 text-left text-[9px] font-semibold leading-tight text-blue-700" title={holiday.name}>
+                        {holiday.name}
+                      </div>
+                    ))}
                     {dateLeaves.slice(0, 2).map(l => {
                       const style = getLeaveColorStyles(l.leaveType);
                       const nameParts = l.employeeName.split(' ');
@@ -417,8 +451,8 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
 
                   {/* Small visual line for mobile if there's any leave */}
                   <div className="w-full md:hidden mt-1">
-                    {hasLeaves && (
-                      <div className="h-1 bg-red-400 rounded-full w-3/4" />
+                    {(hasLeaves || hasHolidays) && (
+                      <div className={`h-1 rounded-full w-3/4 ${hasLeaves ? 'bg-red-400' : 'bg-blue-400'}`} />
                     )}
                   </div>
                 </button>
@@ -458,6 +492,26 @@ export default function LeaveCalendar({ requests, employees }: LeaveCalendarProp
                 <span className="text-[8px] text-on-surface-variant">Absent staff</span>
               </div>
             </div>
+
+            {selectedDateHolidays.length > 0 && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-[10px] text-blue-900">
+                <p className="font-extrabold uppercase tracking-wider">Public Holidays</p>
+                <div className="mt-2 space-y-1">
+                  {selectedDateHolidays.map((holiday) => (
+                    <p key={holiday.id} className="font-semibold">
+                      {holiday.name} · {workShiftData.holidayGroups.find((group) => group.id === holiday.groupId)?.name || 'Holiday Group'}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedDateRestEmployees.length > 0 && (
+              <div className="rounded-lg border border-neutral-200 bg-white p-3 text-[10px] text-on-surface-variant">
+                <p className="font-extrabold uppercase tracking-wider text-on-surface">Rest-day employees ({selectedDateRestEmployees.length})</p>
+                <p className="mt-1">{selectedDateRestEmployees.map((employee) => employee.name).join(', ')}</p>
+              </div>
+            )}
 
             {/* Coverage Warnings */}
             {shiftPlanningCoverage.warnings.length > 0 && (

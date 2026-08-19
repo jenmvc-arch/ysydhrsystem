@@ -17,6 +17,7 @@ export type AppTab =
   | 'entities'
   | 'tax-settings'
   | 'leave-management'
+  | 'work-shift-groups'
   | 'forms-directory'
   | 'hire-onboarding'
   | 'department-role'
@@ -236,6 +237,83 @@ export interface Employee {
   socsoProfile?: EmployeeSocsoProfile;
   employee_pcb_history_ledger?: EmployeePCBHistoryLedgerEntry[];
   employee_tp3_declarations?: EmployeeTP3Declaration[];
+}
+
+export type WorkShiftDayType = 'full_day' | 'half_day' | 'rest';
+
+export interface WorkShiftGroup {
+  id: string;
+  entityId: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  weeklyHours: number;
+  weeklyHoursWarning: boolean;
+  isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkShiftGroupDay {
+  id: string;
+  entityId: string;
+  groupId: string;
+  weekday: number;
+  startTime: string;
+  endTime: string;
+  dayType: WorkShiftDayType;
+  isWorkDay: boolean;
+  actualHours: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EmployeeWorkShiftAssignment {
+  id: string;
+  entityId: string;
+  employeeId: string;
+  groupId: string;
+  effectiveDate: string;
+  endDate?: string;
+  active: boolean;
+  assignedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type PublicHolidayCategory = 'national' | 'state';
+
+export interface PublicHolidayGroup {
+  id: string;
+  entityId: string;
+  name: string;
+  category: PublicHolidayCategory;
+  stateCode?: string;
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PublicHoliday {
+  id: string;
+  entityId: string;
+  groupId: string;
+  name: string;
+  holidayDate: string;
+  observedDate?: string;
+  year: number;
+  notes?: string;
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkShiftData {
+  groups: WorkShiftGroup[];
+  days: WorkShiftGroupDay[];
+  assignments: EmployeeWorkShiftAssignment[];
+  holidayGroups: PublicHolidayGroup[];
+  holidays: PublicHoliday[];
 }
 
 export interface SalaryAdjustment {

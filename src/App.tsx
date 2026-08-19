@@ -29,6 +29,7 @@ import {
   PayrollRecord2026,
   HiringPipelineData,
   CandidatePipelineStatus,
+  WorkShiftData,
 } from './types';
 import { 
   INITIAL_EMPLOYEES, 
@@ -76,6 +77,7 @@ import TaxSettingsView from './components/TaxSettingsView';
 import LeaveManagementView from './components/LeaveManagementView';
 import FormsDirectoryView from './components/FormsDirectoryView';
 import HireOnboardingView from './components/HireOnboardingView';
+import WorkShiftGroupsView from './components/WorkShiftGroupsView';
 import DepartmentRoleView from './components/DepartmentRoleView';
 import SocsoConfigAdminView from './components/SocsoConfigAdminView';
 import EmployeePortalView from './components/EmployeePortalView';
@@ -92,6 +94,11 @@ import {
   supabaseClient,
   isSupabaseConfigured,
 } from './lib/supabaseClient';
+import {
+  buildDefaultWorkShiftData,
+  normalizeWorkShiftData,
+  workShiftService,
+} from './lib/workShiftEngine';
 
 const parseOptionalJson = <T,>(value: unknown): T | undefined => {
   if (value === undefined || value === null || value === '') {
@@ -392,6 +399,9 @@ export default function App() {
     }
     return { ...EMPTY_HIRING_PIPELINE };
   });
+  const [workShiftData, setWorkShiftData] = useState<WorkShiftData>(() => (
+    buildDefaultWorkShiftData(localStorage.getItem('active_corporate_entity_id') || '')
+  ));
   const [payrollRecords2026, setPayrollRecords2026] = useState<PayrollRecord2026[]>([]);
   const [isSeeding, setIsSeeding] = useState(false);
   const [isLoadingDb, setIsLoadingDb] = useState(isGoogleConfigured);
@@ -420,6 +430,17 @@ export default function App() {
   React.useEffect(() => {
     localStorage.setItem('offline_hiring_pipeline', JSON.stringify(hiringPipeline));
   }, [hiringPipeline]);
+
+  React.useEffect(() => {
+    if (!activeEntityId) return;
+    let cancelled = false;
+    void workShiftService.load(activeEntityId).then((loaded) => {
+      if (!cancelled) setWorkShiftData(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeEntityId]);
 
   React.useEffect(() => {
     setHiringPipeline((current) => {
@@ -1481,6 +1502,31 @@ export default function App() {
       }
     }
     setHiringPipeline(normalized);
+  };
+
+  const handleSaveWorkShiftData = async (nextData: WorkShiftData) => {
+    const previous = workShiftData;
+    const tableMap: Array<[keyof WorkShiftData, 'groups' | 'days' | 'assignments' | 'holidayGroups' | 'holidays']> = [
+      ['groups', 'groups'],
+      ['days', 'days'],
+      ['assignments', 'assignments'],
+      ['holidayGroups', 'holidayGroups'],
+      ['holidays', 'holidays'],
+    ];
+    for (const [key, tableKey] of tableMap) {
+      const nextRecords = nextData[key] as Array<{ id: string }>;
+      const previousRecords = previous[key] as Array<{ id: string }>;
+      for (const oldRecord of previousRecords) {
+        if (!nextRecords.some((record) => record.id === oldRecord.id)) {
+          await workShiftService.delete(tableKey as any, oldRecord.id);
+        }
+      }
+      for (const record of nextRecords) {
+        await workShiftService.upsert(tableKey as any, record);
+      }
+    }
+    await workShiftService.saveState(activeEntityId, normalizeWorkShiftData(nextData));
+    setWorkShiftData(normalizeWorkShiftData(nextData));
   };
 
   const handleAddCandidate = async (candidateInput: Candidate) => {
@@ -2763,7 +2809,18 @@ export default function App() {
               employees={filteredEmployees}
               onShowNotification={triggerNotification}
               activeEntityId={activeEntityId}
+              workShiftData={workShiftData}
+              onSaveWorkShiftData={handleSaveWorkShiftData}
               onSyncLeavePayrollDeduction={handleSyncLeavePayrollDeduction}
+            />
+          )}
+
+          {currentTab === 'work-shift-groups' && (
+            <WorkShiftGroupsView
+              employees={filteredEmployees}
+              activeEntityId={activeEntityId}
+              data={workShiftData}
+              onSave={handleSaveWorkShiftData}
             />
           )}
 

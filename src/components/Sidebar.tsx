@@ -18,7 +18,8 @@ import {
   Calendar,
   ClipboardList,
   UserPlus,
-  Tags
+  Tags,
+  CalendarClock
 } from 'lucide-react';
 import { AppTab, CorporateEntity } from '../types';
 import { getDirectLogoUrl } from '../data';
@@ -50,6 +51,7 @@ export default function Sidebar({
     { id: 'directory' as AppTab, label: 'Employee Directory', icon: Users },
     { id: 'payroll' as AppTab, label: 'Payroll Center', icon: CreditCard },
     { id: 'leave-management' as AppTab, label: 'Leave Management', icon: Calendar },
+    { id: 'work-shift-groups' as AppTab, label: 'Work & Shift Groups', icon: CalendarClock },
     { id: 'performance' as AppTab, label: 'Performance Appraisal', icon: Award },
     { id: 'hire-onboarding' as AppTab, label: 'Hire & Onboarding', icon: UserPlus },
   ];

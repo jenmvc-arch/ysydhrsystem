@@ -6,6 +6,8 @@
 import type { Employee } from '../types';
 import { getGmt8DateString, getGmt8Timestamp } from './dateUtils';
 import { isSupabaseConfigured, supabase, supabaseClient } from './supabaseClient';
+import { calculateScheduledLeaveUnits } from './workShiftEngine';
+import type { WorkShiftData } from '../types';
 
 export type LeaveRequestStatus = 'Draft' | 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
 export type LeavePaidTreatment = 'paid' | 'unpaid';
@@ -69,6 +71,7 @@ export interface LeaveGroup {
   description?: string;
   isDefault: boolean;
   isActive: boolean;
+  publicHolidayGroupIds?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -522,6 +525,52 @@ export function calculatePolicyDeductionDays(days: number, policy?: LeaveConditi
   return roundLeaveDays(days, policy?.roundingRule || 'nearest_half_day');
 }
 
+export function getEmployeeLeaveGroupHolidayIds(
+  employeeId: string,
+  data: LeaveDataState,
+  asOfDate = getGmt8DateString()
+) {
+  const groupIds = new Set(
+    getActiveAssignmentsForEmployee(employeeId, data.assignments, asOfDate).map((assignment) => assignment.groupId)
+  );
+  if (groupIds.size === 0) {
+    data.leaveGroups.filter((group) => group.isDefault && group.isActive).forEach((group) => groupIds.add(group.id));
+  }
+  return [...new Set(
+    data.leaveGroups
+      .filter((group) => groupIds.has(group.id))
+      .flatMap((group) => group.publicHolidayGroupIds || [])
+  )];
+}
+
+export function calculateEmployeeLeaveDays(
+  employeeId: string,
+  startDate: string,
+  endDate: string,
+  policy: LeaveConditionPolicy | undefined,
+  leaveData: LeaveDataState,
+  workShiftData?: WorkShiftData
+) {
+  if (!workShiftData) {
+    return calculatePolicyDeductionDays(calculateInclusiveDays(startDate, endDate), policy);
+  }
+  const holidayIds = getEmployeeLeaveGroupHolidayIds(employeeId, leaveData, startDate);
+  const effectiveHolidayIds = holidayIds.length > 0
+    ? holidayIds
+    : (workShiftData.holidayGroups.find((group) => group.enabled)?.id
+      ? [workShiftData.holidayGroups.find((group) => group.enabled)!.id]
+      : []);
+  const units = calculateScheduledLeaveUnits(
+    employeeId,
+    startDate,
+    endDate,
+    workShiftData,
+    effectiveHolidayIds,
+    policy?.deductionBasis || 'calendar_day'
+  );
+  return calculatePolicyDeductionDays(units, policy);
+}
+
 export function getActiveAssignmentsForEmployee(
   employeeId: string,
   assignments: EmployeeLeaveGroupAssignment[],
@@ -554,9 +603,10 @@ export function findAssignmentConflicts(
   assignments: EmployeeLeaveGroupAssignment[],
   groups: LeaveGroup[],
   groupItems: LeaveGroupItem[],
-  leaveTypes: LeaveTypeRecord[]
+  leaveTypes: LeaveTypeRecord[],
+  asOfDate = getGmt8DateString()
 ): LeaveAssignmentConflict[] {
-  const activeGroupIds = getActiveAssignmentsForEmployee(employeeId, assignments).map((assignment) => assignment.groupId);
+  const activeGroupIds = getActiveAssignmentsForEmployee(employeeId, assignments, asOfDate).map((assignment) => assignment.groupId);
   const leaveTypeToGroups = new Map<string, string[]>();
   groupItems
     .filter((item) => activeGroupIds.includes(item.groupId))
@@ -645,18 +695,16 @@ export function calculateLeaveBalances(
 
   const replacementType = data.leaveTypes.find((type) => type.code === REPLACEMENT_LEAVE_CODE);
   if (replacementType && !balances.some((balance) => balance.leaveTypeId === replacementType.id)) {
-    const replacementCredits = data.ledger
+    const replacementCreditEntries = data.ledger
       .filter((entry) => (
         entry.employeeId === employeeId &&
         entry.leaveTypeId === replacementType.id &&
         entry.source === 'off_in_lieu' &&
+        entry.remainingDays > 0 &&
         (!entry.expiryDate || entry.expiryDate >= asOfDate)
-      ))
-      .reduce((sum, entry) => sum + entry.remainingDays, 0);
+      ));
+    const replacementCredits = replacementCreditEntries.reduce((sum, entry) => sum + entry.remainingDays, 0);
     if (replacementCredits > 0) {
-      const approved = data.requests
-        .filter((request) => request.employeeId === employeeId && request.leaveTypeId === replacementType.id && request.status === 'Approved')
-        .reduce((sum, request) => sum + request.totalDays, 0);
       const pending = data.requests
         .filter((request) => request.employeeId === employeeId && request.leaveTypeId === replacementType.id && request.status === 'Pending')
         .reduce((sum, request) => sum + request.totalDays, 0);
@@ -667,9 +715,13 @@ export function calculateLeaveBalances(
         entitlementDays: 0,
         carriedForwardDays: 0,
         creditedDays: replacementCredits,
-        takenDays: approved,
+        takenDays: 0,
         pendingDays: pending,
-        remainingDays: Math.max(0, Number((replacementCredits - approved).toFixed(2))),
+        remainingDays: Number(replacementCredits.toFixed(2)),
+        expiryDate: replacementCreditEntries
+          .map((entry) => entry.expiryDate)
+          .filter(Boolean)
+          .sort()[0],
       });
     }
   }

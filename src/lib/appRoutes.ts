@@ -14,6 +14,7 @@ export const APP_TAB_PATHS: Record<AppTab, string> = {
   entities: '/entities',
   'tax-settings': '/tax-compliance',
   'leave-management': '/leave-management',
+  'work-shift-groups': '/work-shift-groups',
   'forms-directory': '/forms-directory',
   'hire-onboarding': '/hire-onboarding',
   'department-role': '/department-roles',
