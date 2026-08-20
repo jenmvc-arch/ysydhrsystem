@@ -59,6 +59,7 @@ export const INITIAL_PERFORMANCES: EmployeePerformance[] = [];
 
 export interface PayslipBreakdown {
   grossEarnings: number;
+  grossPay: number;
   epfEmployeeValue: number;
   epfEmployerValue: number;
   socsoEmployeeVal: number;
@@ -2553,6 +2554,10 @@ export function getEmployeeForMonth(employee: Employee, month: number, year?: nu
       histRecord.unpaidLeave !== undefined
         ? histRecord.unpaidLeave
         : effectiveEmployee.unpaidLeave,
+    incompleteMonthDeduction:
+      histRecord.incompleteMonthDeduction !== undefined
+        ? histRecord.incompleteMonthDeduction
+        : effectiveEmployee.incompleteMonthDeduction,
     deductionInLieu:
       histRecord.deductionInLieu !== undefined
         ? histRecord.deductionInLieu
@@ -2652,6 +2657,7 @@ export function calculatePayslip(employee: Employee, month?: number, year?: numb
 
   // Custom Deductions
   const unpaidLeaveVal = mergedEmployee.unpaidLeave || 0;
+  const incompleteMonthDeductionVal = mergedEmployee.incompleteMonthDeduction || 0;
   const deductionInLieuVal = mergedEmployee.deductionInLieu || 0;
   const deductionCp38Val = mergedEmployee.deductionCp38 || 0;
   const deductionOthersVal = mergedEmployee.deductionOthers || 0;
@@ -2733,7 +2739,6 @@ export function calculatePayslip(employee: Employee, month?: number, year?: numb
     eisEmployeeVal +
     skbbkEmpVal +
     taxPcbVal +
-    unpaidLeaveVal +
     deductionInLieuVal +
     deductionCp38Val +
     deductionOthersVal;
@@ -2745,11 +2750,14 @@ export function calculatePayslip(employee: Employee, month?: number, year?: numb
     skbbkEmplyrVal +
     hrdCorpVal;
 
-  // Net Pay = Gross Earnings + Reimbursements - Total Deductions
-  const netPay = grossEarnings + reimbursementsSum - totalDeductions;
+  // Gross Pay v2 moves unpaid and incomplete-month reductions into gross pay.
+  // Keep them out of totalDeductions so they are not subtracted twice.
+  const grossPay = Math.max(0, grossEarnings - unpaidLeaveVal - incompleteMonthDeductionVal);
+  const netPay = grossPay + reimbursementsSum - totalDeductions;
 
   return {
     grossEarnings,
+    grossPay,
     epfEmployeeValue,
     epfEmployerValue,
     socsoEmployeeVal,
@@ -2799,6 +2807,7 @@ export function getPayslipEmployeeForRecord(employee: Employee, record: PayrollR
     reimbursementAmount: isSeparatePayoutDocument ? Number(record.reimbursementAmount || 0) : (record.reimbursementAmount ?? baseEmployee.reimbursementAmount),
     reimbursementDesc: record.reimbursementDesc ?? baseEmployee.reimbursementDesc,
     unpaidLeave: record.unpaidLeave ?? baseEmployee.unpaidLeave,
+    incompleteMonthDeduction: record.incompleteMonthDeduction ?? baseEmployee.incompleteMonthDeduction,
     deductionInLieu: record.deductionInLieu ?? baseEmployee.deductionInLieu,
     deductionCp38: record.deductionCp38 ?? baseEmployee.deductionCp38,
     deductionOthers: record.deductionOthers ?? baseEmployee.deductionOthers,

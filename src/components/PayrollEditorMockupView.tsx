@@ -54,6 +54,7 @@ interface PayrollEditorMockupViewProps {
   payrollRecords2026?: PayrollRecord2026[];
   activeEntity?: CorporateEntity;
   mode?: 'standalone' | 'embedded';
+  hideContextBar?: boolean;
   selectedEmployeeId?: string;
   onSelectedEmployeeIdChange?: (employeeId: string) => void;
   selectedPayPeriod?: string;
@@ -106,6 +107,7 @@ type MockupDraft = {
   deductionCp38: number;
   deductionOthers: number;
   deductionOthersDesc: string;
+  incompleteMonthDeduction: number;
   statutoryTreatment: ContractStatutoryTreatment;
   payoutDescription: string;
   lineNotes: PayrollLineNotes;
@@ -222,6 +224,7 @@ const getInitialDraft = (
     taxPcb: breakdown.taxPcbVal,
     hrdCorp: breakdown.hrdCorpVal,
     unpaidLeave: effectiveEmployee.unpaidLeave || 0,
+    incompleteMonthDeduction: effectiveEmployee.incompleteMonthDeduction || 0,
     deductionInLieu: effectiveEmployee.deductionInLieu || 0,
     deductionCp38: effectiveEmployee.deductionCp38 || 0,
     deductionOthers: effectiveEmployee.deductionOthers || 0,
@@ -274,6 +277,7 @@ const getInitialDraft = (
     taxPcb: 0,
     hrdCorp: 0,
     unpaidLeave: 0,
+    incompleteMonthDeduction: 0,
     deductionInLieu: 0,
     deductionCp38: 0,
     deductionOthers: 0,
@@ -341,6 +345,7 @@ const getDraftFromPayrollRecord = (
     reimbursementAmount: Number(record.reimbursementAmount ?? fallbackDraft.reimbursementAmount),
     reimbursementDesc: record.reimbursementDesc ?? fallbackDraft.reimbursementDesc,
     unpaidLeave: Number(record.unpaidLeave ?? fallbackDraft.unpaidLeave),
+    incompleteMonthDeduction: Number(record.incompleteMonthDeduction ?? fallbackDraft.incompleteMonthDeduction),
     deductionInLieu: Number(record.deductionInLieu ?? fallbackDraft.deductionInLieu),
     deductionCp38: Number(record.deductionCp38 ?? fallbackDraft.deductionCp38),
     deductionOthers: Number(record.deductionOthers ?? fallbackDraft.deductionOthers),
@@ -388,6 +393,7 @@ const getCalculationEmployee = (employee: Employee, draft: MockupDraft): Employe
   reimbursementAmount: draft.reimbursementAmount,
   reimbursementDesc: draft.reimbursementDesc,
   deductionInLieu: draft.deductionInLieu,
+  incompleteMonthDeduction: draft.incompleteMonthDeduction,
   deductionCp38: draft.deductionCp38,
   deductionOthers: draft.deductionOthers,
   deductionOthersDesc: draft.deductionOthersDesc,
@@ -448,6 +454,7 @@ export default function PayrollEditorMockupView({
   payrollRecords2026 = [],
   activeEntity,
   mode = 'standalone',
+  hideContextBar = false,
   selectedEmployeeId: controlledSelectedEmployeeId,
   onSelectedEmployeeIdChange,
   selectedPayPeriod: controlledSelectedPayPeriod,
@@ -828,6 +835,7 @@ export default function PayrollEditorMockupView({
       reimbursementAmount: draft.reimbursementAmount,
       reimbursementDesc: draft.reimbursementDesc,
       unpaidLeave: draft.unpaidLeave,
+      incompleteMonthDeduction: draft.incompleteMonthDeduction,
       deductionInLieu: draft.deductionInLieu,
       deductionCp38: draft.deductionCp38,
       deductionOthers: draft.deductionOthers,
@@ -851,6 +859,9 @@ export default function PayrollEditorMockupView({
       eisEmployee: recordBreakdown.eisEmployeeVal,
       eisEmployer: recordBreakdown.eisEmployerVal,
       hrdCorp: recordBreakdown.hrdCorpVal,
+      grossPay: recordBreakdown.grossPay,
+      calculationVersion: 'gross_pay_v2',
+      status: 'Processed',
       netPay: recordBreakdown.netPay,
       createdAt: getGmt8Timestamp()
     };
@@ -947,6 +958,7 @@ export default function PayrollEditorMockupView({
     subdued?: boolean;
   }> = [
     { field: 'unpaidLeave', label: 'Unpaid Leave' },
+    { field: 'incompleteMonthDeduction', label: 'Incomplete-month deduction' },
     { field: 'deductionInLieu', label: 'Payment in Lieu' },
     { field: 'deductionCp38', label: 'CP38 Direct Tax' },
     { field: 'deductionOthers', label: 'Others', subdued: true }
@@ -1145,7 +1157,7 @@ export default function PayrollEditorMockupView({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 rounded-lg border border-neutral-border bg-white p-4 shadow-xs lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto] lg:items-end">
+      {!hideContextBar && <div className="grid grid-cols-1 gap-3 rounded-lg border border-neutral-border bg-white p-4 shadow-xs lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto] lg:items-end">
         <div>
           <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Employee</label>
           <select
@@ -1199,7 +1211,7 @@ export default function PayrollEditorMockupView({
           {isEditing ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
           {isEditing ? 'Cancel Edit' : `Edit ${isSeparatePayoutMode ? separatePayoutConfig?.title : documentProfile.documentType}`}
         </button>
-      </div>
+      </div>}
 
       {isSeparatePayoutMode && separatePayoutConfig && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-left text-xs shadow-xs">
@@ -1416,7 +1428,7 @@ export default function PayrollEditorMockupView({
               )}
               <div className="mt-2 flex items-center justify-between border-t border-primary/20 pt-3 text-xs font-bold text-primary">
                 <span>{documentProfile.isPaymentVoucher ? 'Gross Amount' : 'Total Earnings & Reimbursements'}</span>
-                <span className="font-mono">{formatMoney(breakdown.grossEarnings + breakdown.reimbursementsSum)}</span>
+                <span className="font-mono">{formatMoney(breakdown.grossPay + breakdown.reimbursementsSum)}</span>
               </div>
             </div>
           </div>
@@ -1493,6 +1505,7 @@ export default function PayrollEditorMockupView({
               {displaySettings.showDeductionDetails && (
                 <>
                   {renderLine({ label: 'Unpaid Leave', amount: activeDraft.unpaidLeave, field: 'unpaidLeave', descriptionKey: 'unpaidLeave', fallback: 'Unpaid Leave', collapsedWhenEditing: true, removable: true })}
+                  {renderLine({ label: 'Incomplete-month deduction', amount: activeDraft.incompleteMonthDeduction, field: 'incompleteMonthDeduction', fallback: 'Incomplete-month deduction', collapsedWhenEditing: true, removable: true })}
                   {renderLine({ label: 'Payment in Lieu', amount: activeDraft.deductionInLieu, field: 'deductionInLieu', descriptionKey: 'deductionInLieu', fallback: 'Payment in Lieu', collapsedWhenEditing: true, removable: true })}
                   {documentProfile.statutoryEnabled && renderLine({ label: 'CP38 Direct Tax', amount: activeDraft.deductionCp38, field: 'deductionCp38', descriptionKey: 'deductionCp38', fallback: 'CP38 Direct Tax', collapsedWhenEditing: true, removable: true })}
                   {renderLine({ label: 'Other Deductions', amount: activeDraft.deductionOthers, field: 'deductionOthers', descriptionKey: 'deductionOthers', fallback: activeDraft.deductionOthersDesc || 'Other Deductions', collapsedWhenEditing: true, removable: true })}
@@ -1502,6 +1515,11 @@ export default function PayrollEditorMockupView({
                 <span>{documentProfile.isPaymentVoucher ? 'Other Deductions' : 'Total Deductions'}</span>
                 <span className="font-mono">{formatMoney(breakdown.totalDeductions)}</span>
               </div>
+              {(activeDraft.unpaidLeave > 0 || activeDraft.incompleteMonthDeduction > 0) && (
+                <p className="mt-2 text-[10px] leading-relaxed text-on-surface-variant">
+                  Gross Pay v2 includes unpaid leave and incomplete-month reductions; they are not deducted again.
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -1561,7 +1579,7 @@ export default function PayrollEditorMockupView({
 	            <span className="font-mono text-sm font-bold text-primary">{formatMoney(breakdown.netPay)}</span>
 	          </div>
 	          <div className="mt-3 space-y-1 text-xs">
-	            <div className="flex justify-between gap-4"><span className="text-on-surface-variant">{documentProfile.isPaymentVoucher ? 'Gross Amount' : 'Gross Earnings + Reimbursements'}</span><span className="font-mono">{formatMoney(breakdown.grossEarnings + breakdown.reimbursementsSum)}</span></div>
+	            <div className="flex justify-between gap-4"><span className="text-on-surface-variant">{documentProfile.isPaymentVoucher ? 'Gross Amount' : 'Gross Pay + Reimbursements'}</span><span className="font-mono">{formatMoney(breakdown.grossPay + breakdown.reimbursementsSum)}</span></div>
 	            <div className="flex justify-between gap-4"><span className="text-on-surface-variant">{documentProfile.isPaymentVoucher ? 'Other Deductions' : 'Total Deductions'}</span><span className="font-mono text-red-700">- {formatMoney(breakdown.totalDeductions)}</span></div>
 	            <div className="flex justify-between gap-4 border-t border-primary/15 pt-2 font-bold text-primary"><span>{documentProfile.isPaymentVoucher ? 'Net Payable' : 'Net Pay'}</span><span className="font-mono">{formatMoney(breakdown.netPay)}</span></div>
 	          </div>

@@ -120,6 +120,7 @@ export default function PayslipDocumentView({
       reimbursementAmount: isSeparatePayoutDocument ? Number(activePayrollRecord.reimbursementAmount || 0) : (activePayrollRecord.reimbursementAmount ?? activeEmployee.reimbursementAmount),
       reimbursementDesc: activePayrollRecord.reimbursementDesc ?? activeEmployee.reimbursementDesc,
       unpaidLeave: activePayrollRecord.unpaidLeave ?? activeEmployee.unpaidLeave,
+      incompleteMonthDeduction: activePayrollRecord.incompleteMonthDeduction ?? activeEmployee.incompleteMonthDeduction,
       deductionInLieu: activePayrollRecord.deductionInLieu ?? activeEmployee.deductionInLieu,
       deductionCp38: activePayrollRecord.deductionCp38 ?? activeEmployee.deductionCp38,
       deductionOthers: activePayrollRecord.deductionOthers ?? activeEmployee.deductionOthers,
@@ -659,7 +660,7 @@ export default function PayslipDocumentView({
               {/* Total Row */}
               <div className="flex justify-between items-center border-t border-b border-[#A32626] py-3 mt-4 text-[#A32626] font-black text-xs uppercase tracking-wider">
 	                <span>{documentProfile.isPaymentVoucher ? 'Gross Amount' : 'Total Earnings & Additions'}</span>
-                <span className="font-mono">RM {(breakdown.grossEarnings + breakdown.reimbursementsSum).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                <span className="font-mono">RM {(breakdown.grossPay + breakdown.reimbursementsSum).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
               </div>
             </div>
 
@@ -727,6 +728,13 @@ export default function PayslipDocumentView({
                     </tr>
                   )}
 
+                  {(payrollDocumentEmployee.incompleteMonthDeduction || 0) > 0 && (
+                    <tr className="hover:bg-[#F2E8D8]/20">
+                      <td className="py-2 text-left font-medium">{renderLineDescription(getDescription('incompleteMonthDeduction', 'Incomplete-month deduction'), 'incompleteMonthDeduction')}</td>
+                      <td className="py-2 text-right font-mono font-bold">{(payrollDocumentEmployee.incompleteMonthDeduction || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                  )}
+
                   {/* Payment in Lieu */}
                   {(payrollDocumentEmployee.deductionInLieu || 0) > 0 && (
                     <tr className="hover:bg-[#F2E8D8]/20">
@@ -760,6 +768,11 @@ export default function PayslipDocumentView({
 	                <span>{documentProfile.isPaymentVoucher ? 'Other Deductions' : 'Total Deductions'}</span>
                 <span className="font-mono">RM {breakdown.totalDeductions.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
               </div>
+              {(payrollDocumentEmployee.unpaidLeave || payrollDocumentEmployee.incompleteMonthDeduction || 0) > 0 && (
+                <p className="mt-2 text-[10px] leading-relaxed text-on-surface-variant">
+                  Unpaid leave and incomplete-month reductions are included in Gross Pay v2 and are not deducted again from this total.
+                </p>
+              )}
             </div>
           </div>
 
@@ -773,7 +786,7 @@ export default function PayslipDocumentView({
               <div>
                 <p className="text-[10px] text-[#6B6B6B] font-black uppercase tracking-wider">{documentProfile.isPaymentVoucher ? 'Gross Amount' : 'Gross Pay'}</p>
                 <p className="text-lg font-black text-[#333333] font-mono mt-0.5">
-                  RM {(breakdown.grossEarnings + breakdown.reimbursementsSum).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                  RM {(breakdown.grossPay + breakdown.reimbursementsSum).toLocaleString('en-US', {minimumFractionDigits: 2})}
                 </p>
               </div>
             </div>

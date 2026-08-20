@@ -68,6 +68,7 @@ export interface PayslipDescriptionOverrides {
   allowancePhone?: string;
   overtime?: string;
   unpaidLeave?: string;
+  incompleteMonthDeduction?: string;
   deductionInLieu?: string;
   deductionCp38?: string;
   deductionOthers?: string;
@@ -127,6 +128,7 @@ export interface Employee {
   allowanceMeal?: number;
   allowanceAccommodation?: number;
   allowancePhone?: number;
+  incompleteMonthDeduction?: number;
   paymentDate?: string;
   payslipDescriptions?: PayslipDescriptionOverrides;
   
@@ -571,6 +573,7 @@ export interface HistoricalPayrollRecord {
   reimbursementAmount?: number;
   reimbursementDesc?: string;
   unpaidLeave?: number;
+  incompleteMonthDeduction?: number;
   deductionInLieu?: number;
   deductionCp38?: number;
   deductionOthers?: number;
@@ -824,6 +827,7 @@ export interface PayrollRecord2026 {
   reimbursementAmount: number;
   reimbursementDesc?: string;
   unpaidLeave: number;
+  incompleteMonthDeduction?: number;
   deductionInLieu: number;
   deductionCp38: number;
   deductionOthers: number;
@@ -848,6 +852,9 @@ export interface PayrollRecord2026 {
   eisEmployer: number;
   hrdCorp?: number;
   netPay: number;
+  grossPay?: number;
+  calculationVersion?: string;
+  status?: 'Draft' | 'Processed' | 'Cancelled';
   createdAt: string;
 }
 

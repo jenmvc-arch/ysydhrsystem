@@ -442,6 +442,7 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
       reimbursementAmount: isSeparatePayoutDocument ? Number(activePayrollRecord.reimbursementAmount || 0) : (activePayrollRecord.reimbursementAmount ?? baseEmployee.reimbursementAmount),
       reimbursementDesc: activePayrollRecord.reimbursementDesc ?? baseEmployee.reimbursementDesc,
       unpaidLeave: activePayrollRecord.unpaidLeave ?? baseEmployee.unpaidLeave,
+      incompleteMonthDeduction: activePayrollRecord.incompleteMonthDeduction ?? baseEmployee.incompleteMonthDeduction,
       deductionInLieu: activePayrollRecord.deductionInLieu ?? baseEmployee.deductionInLieu,
       deductionCp38: activePayrollRecord.deductionCp38 ?? baseEmployee.deductionCp38,
       deductionOthers: activePayrollRecord.deductionOthers ?? baseEmployee.deductionOthers,
@@ -562,6 +563,7 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
   const eisEmployeeVal = breakdown.eisEmployeeVal;
   const taxPcbVal = breakdown.taxPcbVal;
   const deductionInLieuVal = employee.deductionInLieu || 0;
+  const incompleteMonthDeductionVal = employee.incompleteMonthDeduction || 0;
   const deductionCp38Val = employee.deductionCp38 || 0;
   const deductionOthersVal = employee.deductionOthers || 0;
 
@@ -813,7 +815,7 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
 
             <View style={styles.tableTotalRow}>
               <Text style={styles.tableTotalText}>{documentProfile.isPaymentVoucher ? 'Gross Amount' : 'Total Earnings & Additions'}</Text>
-              <Text style={styles.tableTotalText}>{formatCurrency(breakdown.grossEarnings + breakdown.reimbursementsSum)}</Text>
+              <Text style={styles.tableTotalText}>{formatCurrency(breakdown.grossPay + breakdown.reimbursementsSum)}</Text>
             </View>
           </View>
 
@@ -878,6 +880,12 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
                 <Text style={styles.itemVal}>{formatCurrency(unpaidLeaveVal)}</Text>
               </View>
             )}
+            {displaySettings.showDeductionDetails && incompleteMonthDeductionVal > 0 && (
+              <View style={styles.tableRow}>
+                {renderItemDescription(getDescription('incompleteMonthDeduction', 'Incomplete-month deduction'), 'incompleteMonthDeduction')}
+                <Text style={styles.itemVal}>{formatCurrency(incompleteMonthDeductionVal)}</Text>
+              </View>
+            )}
             {displaySettings.showDeductionDetails && deductionInLieuVal > 0 && (
               <View style={styles.tableRow}>
                 {renderItemDescription(getDescription('deductionInLieu', 'Payment in Lieu'), 'deductionInLieu')}
@@ -901,6 +909,11 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
               <Text style={styles.tableTotalText}>{documentProfile.isPaymentVoucher ? 'Other Deductions' : 'Total Deductions'}</Text>
               <Text style={styles.tableTotalText}>{formatCurrency(breakdown.totalDeductions)}</Text>
             </View>
+            {(unpaidLeaveVal > 0 || incompleteMonthDeductionVal > 0) && (
+              <Text style={{ ...styles.itemDescription, marginTop: 4 }}>
+                Gross Pay v2 includes unpaid leave and incomplete-month reductions; they are not deducted again.
+              </Text>
+            )}
           </View>
         </View>
 
@@ -910,7 +923,7 @@ export const PayslipPDFDocument = ({ employee: sourceEmployee, entity, month = 1
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>{documentProfile.isPaymentVoucher ? 'Gross Amount' : 'Gross Pay'}</Text>
             <Text style={styles.summaryValue}>
-              {formatCurrency(breakdown.grossEarnings + breakdown.reimbursementsSum)}
+              {formatCurrency(breakdown.grossPay + breakdown.reimbursementsSum)}
             </Text>
           </View>
 

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Building2, Clock, CreditCard, FileText, PlusCircle } from 'lucide-react';
+import { Building2, Clock, CreditCard, FileText, FolderOpen, PlusCircle, Settings2 } from 'lucide-react';
 import type { CorporateEntity, Employee, PayrollRecord2026, PayrollPayoutKind } from '../types';
 import type { PayrollDocumentDisplaySettings } from '../types';
 import {
@@ -22,6 +22,7 @@ import {
 } from '../data';
 import PayslipDocumentView from './PayslipDocumentView';
 import PayrollEditorMockupView from './PayrollEditorMockupView';
+import PayrollFileView from './PayrollFileView';
 
 interface PayrollViewProps {
   employees: Employee[];
@@ -30,10 +31,12 @@ interface PayrollViewProps {
   onShowNotification: (title: string, message: string) => void;
   activeEntity?: CorporateEntity;
   onSavePayrollRecord?: (record: PayrollRecord2026) => Promise<void>;
+  userRole?: string | null;
+  userId?: string | null;
+  userName?: string | null;
 }
 
-type PayrollSubTab = 'processing' | 'document' | 'history';
-type PayrollDocumentViewMode = 'regular' | 'payout';
+type PayrollSubTab = 'processing' | 'file' | 'document' | 'history';
 
 const MONTHS = [
   'January',
@@ -64,7 +67,10 @@ export default function PayrollView({
   onUpdateEmployee,
   onShowNotification,
   activeEntity,
-  onSavePayrollRecord
+  onSavePayrollRecord,
+  userRole,
+  userId,
+  userName
 }: PayrollViewProps) {
   const defaultPeriod = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const [selectedPayPeriod, setSelectedPayPeriod] = useState(defaultPeriod);
@@ -100,6 +106,9 @@ export default function PayrollView({
   }, [eligibleEmployees, entityEmployees, selectedEmployeeId]);
 
   const activePayrollEmployee = entityEmployees.find(employee => employee.id === selectedEmployeeId) || entityEmployees[0];
+  const departments = useMemo(() => (
+    Array.from(new Set(entityEmployees.map(employee => employee.department).filter(Boolean))).sort()
+  ), [entityEmployees]);
   const activeDocumentProfile = activePayrollEmployee ? getPayrollDocumentProfile(activePayrollEmployee) : null;
   const activeDocumentFieldLabels = activeDocumentProfile
     ? getPayrollDocumentFieldLabels(activeDocumentProfile)
@@ -183,6 +192,16 @@ export default function PayrollView({
   const handleSelectedDepartmentChange = (department: string) => {
     setSelectedPayrollRecord(null);
     setSelectedDepartment(department);
+  };
+
+  const handlePreviewRecord = (record: PayrollRecord2026) => {
+    const employee = entityEmployees.find(item => item.email.toLowerCase() === record.employeeEmail.toLowerCase());
+    if (employee) {
+      setSelectedEmployeeId(employee.id);
+      setSelectedPayPeriod(`${MONTHS[record.payrollMonth - 1]} ${record.payrollYear}`);
+    }
+    setSelectedPayrollRecord(record);
+    setActiveSubTab('document');
   };
 
   const renderSeparatePayoutPanel = () => {
@@ -354,7 +373,8 @@ export default function PayrollView({
       payrollRecords2026.filter(record => (
         record?.employeeEmail &&
         activeEmployee.email &&
-        record.employeeEmail.toLowerCase() === activeEmployee.email.toLowerCase()
+        record.employeeEmail.toLowerCase() === activeEmployee.email.toLowerCase() &&
+        (record.status === undefined || record.status === 'Processed')
       ))
     );
 
@@ -446,9 +466,7 @@ export default function PayrollView({
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedPayrollRecord(record);
-                            setSelectedPayPeriod(`${HISTORY_MONTHS[record.payrollMonth]} ${record.payrollYear}`);
-                            setActiveSubTab('document');
+                            handlePreviewRecord(record);
                           }}
                           className="px-2.5 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded font-bold transition-colors cursor-pointer text-[10px]"
                         >
@@ -467,32 +485,109 @@ export default function PayrollView({
   };
 
   return (
-    <div className="max-w-6xl mx-auto animate-in fade-in duration-200 space-y-6">
-      <div className="bg-white border border-neutral-border p-1.5 rounded-lg flex gap-1.5 shadow-xs select-none text-left">
-        {renderSubTabButton('processing', '1. Payroll Editor', <CreditCard className="w-4 h-4" />)}
-        {renderSubTabButton('document', '2. Preview Only', <FileText className="w-4 h-4" />)}
-        {renderSubTabButton('history', '3. YTD & Payroll History', <Clock className="w-4 h-4" />)}
+    <div className="mx-auto max-w-7xl animate-in fade-in duration-200 space-y-6">
+      <div className="flex flex-col gap-3 text-left md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">Core Operations</p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-primary">Payroll Center</h1>
+          <p className="mt-1 max-w-2xl text-xs text-on-surface-variant">
+            Prepare, process, review, and export payroll documents within the active corporate workspace.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-on-surface-variant">
+          <Settings2 className="h-4 w-4" />
+          <span>Workspace filters persist only for this payroll session.</span>
+        </div>
       </div>
 
-      <div className="bg-white border border-neutral-border p-4 rounded-lg flex justify-between items-center shadow-xs text-left select-none">
-        <div className="flex items-center gap-3">
-          <Building2 className="w-5 h-5 text-primary" />
+      <div className="grid grid-cols-2 gap-1 rounded-lg border border-neutral-border bg-white p-1.5 shadow-xs select-none text-left md:grid-cols-4">
+        {renderSubTabButton('processing', '1. Payroll Editor', <CreditCard className="h-4 w-4" />)}
+        {renderSubTabButton('file', '2. Payroll File', <FolderOpen className="h-4 w-4" />)}
+        {renderSubTabButton('document', '3. Preview Payslip', <FileText className="h-4 w-4" />)}
+        {renderSubTabButton('history', '4. YTD & History', <Clock className="h-4 w-4" />)}
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-lg border border-neutral-border bg-white p-4 shadow-xs text-left md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3">
+          <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
             <h4 className="font-bold text-xs text-primary uppercase tracking-wider">Active Corporate Entity</h4>
-            <p className="text-sm font-semibold text-on-background mt-0.5">{activeEntity?.name || 'All Subsidiaries'}</p>
+            <p className="mt-0.5 text-sm font-semibold text-on-background">{activeEntity?.name || 'All Subsidiaries'}</p>
+            <p className="mt-1 text-[11px] text-on-surface-variant">
+              Employees are isolated to this entity when entity-specific records exist.
+            </p>
           </div>
         </div>
-        <span className="text-[10px] bg-primary/10 border border-primary/20 text-primary font-mono font-bold px-2 py-0.5 rounded-sm uppercase">
-          SANDBOX ISOLATED
+        <span className="w-fit rounded-sm border border-neutral-border bg-neutral-50 px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-on-surface-variant">
+          Workspace isolated
         </span>
       </div>
 
-      {renderSeparatePayoutPanel()}
-      {renderDisplaySettingsPanel()}
+      <div className="grid grid-cols-1 gap-3 rounded-lg border border-neutral-border bg-white p-4 shadow-xs text-left lg:grid-cols-[1.3fr_0.8fr_0.8fr_1.2fr] lg:items-end">
+        <div>
+          <label htmlFor="payroll-context-employee" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Employee</label>
+          <select
+            id="payroll-context-employee"
+            value={selectedEmployeeId}
+            disabled={eligibleEmployees.length === 0}
+            onChange={event => handleSelectedEmployeeChange(event.target.value)}
+            className="w-full rounded border border-neutral-border bg-white px-2.5 py-2 text-xs font-semibold outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {eligibleEmployees.length === 0 && <option value="">No eligible employees</option>}
+            {eligibleEmployees.map(employee => (
+              <option key={employee.id} value={employee.id}>{employee.name} - {employee.email}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="payroll-context-month" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Pay month</label>
+          <select
+            id="payroll-context-month"
+            value={monthName}
+            onChange={event => handleSelectedPayPeriodChange(`${event.target.value} ${payYear}`)}
+            className="w-full rounded border border-neutral-border bg-white px-2.5 py-2 text-xs outline-none focus:border-primary"
+          >
+            {MONTHS.map(month => <option key={month}>{month}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="payroll-context-year" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Pay year</label>
+          <select
+            id="payroll-context-year"
+            value={String(payYear)}
+            onChange={event => handleSelectedPayPeriodChange(`${monthName} ${event.target.value}`)}
+            className="w-full rounded border border-neutral-border bg-white px-2.5 py-2 text-xs outline-none focus:border-primary"
+          >
+            {Array.from({ length: 31 }, (_, index) => 2020 + index).reverse().map(year => (
+              <option key={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="payroll-context-department" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Department</label>
+          <select
+            id="payroll-context-department"
+            value={selectedDepartment}
+            onChange={event => handleSelectedDepartmentChange(event.target.value)}
+            className="w-full rounded border border-neutral-border bg-white px-2.5 py-2 text-xs outline-none focus:border-primary"
+          >
+            <option>All Departments</option>
+            {departments.map(department => <option key={department}>{department}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {activeSubTab === 'processing' && (
+        <>
+          {renderSeparatePayoutPanel()}
+          {renderDisplaySettingsPanel()}
+        </>
+      )}
 
       {activeSubTab === 'processing' ? (
         <PayrollEditorMockupView
           mode="embedded"
+          hideContextBar
           employees={entityEmployees}
           payrollRecords2026={payrollRecords2026}
           activeEntity={activeEntity}
@@ -512,21 +607,54 @@ export default function PayrollView({
           }}
           onShowNotification={onShowNotification}
         />
-      ) : activeSubTab === 'document' ? (
-        <div className="bg-white rounded-lg border border-neutral-border overflow-hidden shadow-xs">
-          <PayslipDocumentView
-            employees={eligibleEmployees.length > 0 ? eligibleEmployees : entityEmployees}
-            selectedEmployeeId={selectedEmployeeId}
-            onBack={() => setActiveSubTab('processing')}
-            onShowNotification={onShowNotification}
+      ) : activeSubTab === 'file' ? (
+        <div className="rounded-lg border border-neutral-border bg-white p-4 shadow-xs md:p-6">
+          <PayrollFileView
+            employees={entityEmployees}
+            payrollRecords2026={payrollRecords2026}
             activeEntity={activeEntity}
-            payMonth={payMonthIndex}
-            payYear={payYear}
-            displaySettingsOverride={displaySettingsDraft}
-            payrollRecordOverride={selectedPayrollRecord || activeRegularPayrollRecord || undefined}
-            allEmployeesForHrdCorp={entityEmployees}
+            selectedMonth={payMonthIndex}
+            selectedYear={payYear}
+            selectedDepartment={selectedDepartment}
+            userRole={userRole || undefined}
+            userId={userId}
+            userName={userName}
+            onPreview={handlePreviewRecord}
+            onShowNotification={onShowNotification}
           />
         </div>
+      ) : activeSubTab === 'document' ? (
+        selectedPayrollRecord ? (
+          <div className="overflow-hidden rounded-lg border border-neutral-border bg-white shadow-xs">
+            <PayslipDocumentView
+              employees={entityEmployees}
+              selectedEmployeeId={selectedEmployeeId}
+              onBack={() => setActiveSubTab('file')}
+              onShowNotification={onShowNotification}
+              activeEntity={activeEntity}
+              payMonth={selectedPayrollRecord.payrollMonth}
+              payYear={selectedPayrollRecord.payrollYear}
+              displaySettingsOverride={selectedPayrollRecord.displaySettingsSnapshot || displaySettingsDraft}
+              payrollRecordOverride={selectedPayrollRecord}
+              allEmployeesForHrdCorp={entityEmployees}
+            />
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-neutral-border bg-white p-12 text-center shadow-xs">
+            <FileText className="mx-auto h-8 w-8 text-on-surface-variant" />
+            <h2 className="mt-3 text-sm font-bold text-on-surface">No payslip selected.</h2>
+            <p className="mx-auto mt-1 max-w-md text-xs text-on-surface-variant">
+              Open Payroll File and choose Preview Payslip on a processed payroll record.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('file')}
+              className="mt-4 rounded border border-neutral-border px-3 py-2 text-xs font-bold text-primary hover:bg-neutral-50"
+            >
+              Open Payroll File
+            </button>
+          </div>
+        )
       ) : (
         <div className="bg-white rounded-lg border border-neutral-border p-6 shadow-xs text-left space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-neutral-border/60 pb-4">

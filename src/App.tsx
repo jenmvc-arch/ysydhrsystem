@@ -1273,6 +1273,7 @@ export default function App() {
           reimbursementAmount: Number(r.reimbursementAmount || 0),
           reimbursementDesc: r.reimbursementDesc === undefined ? undefined : String(r.reimbursementDesc || ''),
           unpaidLeave: Number(r.unpaidLeave || 0),
+          incompleteMonthDeduction: r.incompleteMonthDeduction === undefined ? undefined : Number(r.incompleteMonthDeduction || 0),
           deductionInLieu: Number(r.deductionInLieu || 0),
           deductionCp38: Number(r.deductionCp38 || 0),
           deductionOthers: Number(r.deductionOthers || 0),
@@ -1300,6 +1301,9 @@ export default function App() {
           eisEmployer: Number(r.eisEmployer || 0),
           hrdCorp: r.hrdCorp === undefined ? undefined : Number(r.hrdCorp || 0),
           netPay: Number(r.netPay ?? r.netSalary ?? 0),
+          grossPay: r.grossPay === undefined ? undefined : Number(r.grossPay || 0),
+          calculationVersion: r.calculationVersion || undefined,
+          status: r.status || 'Processed',
           createdAt: r.createdAt || ''
         })));
       } catch (err) {
@@ -2008,6 +2012,8 @@ export default function App() {
     const documentProfile = payrollEmployee ? getPayrollDocumentProfile(payrollEmployee) : null;
     const recordToSave: PayrollRecord2026 = {
       ...record,
+      status: record.status || 'Processed',
+      calculationVersion: record.calculationVersion || 'gross_pay_v2',
       documentType: record.documentType || documentProfile?.documentType,
       compensationLabel: record.compensationLabel || documentProfile?.compensationLabel,
       displaySettingsSnapshot: record.displaySettingsSnapshot || (payrollEmployee ? getPayrollDocumentDisplaySettings(payrollEmployee) : undefined)
@@ -2020,6 +2026,9 @@ export default function App() {
           ...recordToSave,
           totalAllowance: recordBreakdown?.allowancesSum ?? undefined,
           grossSalary: recordBreakdown?.grossEarnings ?? undefined,
+          grossPay: recordToSave.grossPay ?? recordBreakdown?.grossPay ?? undefined,
+          calculationVersion: recordToSave.calculationVersion,
+          status: recordToSave.status,
           taxPcb: recordToSave.actualPCBDeducted,
           netSalary: recordToSave.netPay
         });
@@ -2728,6 +2737,9 @@ export default function App() {
 	              onSavePayrollRecord={handleSavePayrollRecord2026}
 	              onShowNotification={triggerNotification}
 	              activeEntity={activeEntity}
+              userRole={currentUserRole}
+              userId={currentUserEmail}
+              userName={currentUserName}
 	            />
           )}
 
