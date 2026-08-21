@@ -52,7 +52,14 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { Employee, EmployeeTaxProfile, CareerHistoryEntry, Dependant, CorporateEntity } from '../types';
+import {
+  Employee,
+  EmployeeTaxProfile,
+  CareerHistoryEntry,
+  Dependant,
+  CorporateEntity,
+  SalaryAdjustment
+} from '../types';
 import {
   getEmployeeAccountEvents,
   getEmployeeAccountSummaries,
@@ -1026,6 +1033,14 @@ export default function EmployeeDirectoryView({
     profile
   ].sort((left, right) => left.effectiveDate.localeCompare(right.effectiveDate));
 
+  const upsertSalaryAdjustment = (
+    adjustments: SalaryAdjustment[],
+    adjustment: SalaryAdjustment
+  ) => [
+    ...adjustments.filter(existing => existing.effectiveDate !== adjustment.effectiveDate),
+    adjustment
+  ].sort((left, right) => left.effectiveDate.localeCompare(right.effectiveDate));
+
   const handleSaveCareerChanges = async () => {
     if (!selectedEmployee) return;
     const stagedEmployee: Employee = {
@@ -1055,6 +1070,13 @@ export default function EmployeeDirectoryView({
       );
     } catch (error) {
       console.error('[Career Save] Failed:', error);
+      onShowNotification(
+        'Save Failed',
+        error instanceof Error
+          ? error.message
+          : 'Career and salary changes could not be saved.',
+        'info'
+      );
     } finally {
       setSavingAction(null);
     }
@@ -1567,7 +1589,17 @@ export default function EmployeeDirectoryView({
           onShowNotification('Validation Error', 'Please enter a valid numeric salary.');
           return;
         }
-        setLocalBasicSalary(numericSalary);
+        const salaryAdjustment: SalaryAdjustment = {
+          id: `salary-adjustment-${Date.now()}`,
+          startDate: progressionDate,
+          effectiveDate: progressionDate,
+          adjustedSalary: numericSalary,
+          reason: progressionNotes || 'Salary Revision',
+          createdAt: getGmt8Timestamp()
+        };
+        setLocalSalaryAdjustments(
+          upsertSalaryAdjustment(localSalaryAdjustments, salaryAdjustment)
+        );
         newVal = `RM ${numericSalary.toLocaleString()}`;
         break;
       case 'Subsidiary Transfer':
