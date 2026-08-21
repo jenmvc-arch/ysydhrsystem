@@ -2772,6 +2772,7 @@ export default function App() {
               employees={filteredEmployees}
               performances={filteredPerformances}
               reviewCycles={reviewCycles}
+              companyName={activeEntity?.name}
               onSavePerformance={handleSavePerformance}
               onShowNotification={triggerNotification}
             />

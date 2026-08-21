@@ -28,6 +28,7 @@ interface PerformanceViewProps {
   employees: Employee[];
   performances: EmployeePerformance[];
   reviewCycles: ReviewCycle[];
+  companyName?: string;
   onSavePerformance: (perf: EmployeePerformance) => void;
   onShowNotification: (title: string, message: string) => void;
 }
@@ -71,6 +72,7 @@ export default function PerformanceView({
   employees,
   performances,
   reviewCycles,
+  companyName,
   onSavePerformance,
   onShowNotification,
 }: PerformanceViewProps) {
@@ -130,6 +132,7 @@ export default function PerformanceView({
           reviewCycle={selectedCycle}
           performance={selectedRecord.performance}
           mode="manager"
+          companyName={companyName}
           onBack={() => setSelectedEmployeeId(null)}
           onDraftSaved={() => setDraftRefreshKey((key) => key + 1)}
           onSavePerformance={onSavePerformance}

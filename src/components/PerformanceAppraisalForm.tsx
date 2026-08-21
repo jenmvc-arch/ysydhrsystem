@@ -3,10 +3,11 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  Download,
   FileCheck2,
   Lock,
+  LoaderCircle,
   Plus,
-  Printer,
   Save,
   Send,
   Trash2,
@@ -26,6 +27,7 @@ import {
   PerformanceAppraisalDraft,
   saveAppraisalDraft,
 } from '../lib/performanceAppraisalDraft';
+import { downloadAppraisalPdf, getAppraisalPdfBranding } from '../lib/appraisalPdfExport';
 import { useFeedback } from '../context/FeedbackContext';
 
 interface PerformanceAppraisalFormProps {
@@ -33,6 +35,7 @@ interface PerformanceAppraisalFormProps {
   reviewCycle: ReviewCycle;
   performance?: EmployeePerformance | null;
   mode: 'manager' | 'employee';
+  companyName?: string;
   currentUserName?: string | null;
   onBack?: () => void;
   onDraftSaved?: (draft: PerformanceAppraisalDraft) => void;
@@ -137,6 +140,7 @@ export default function PerformanceAppraisalForm({
   reviewCycle,
   performance,
   mode,
+  companyName,
   currentUserName,
   onBack,
   onDraftSaved,
@@ -147,6 +151,7 @@ export default function PerformanceAppraisalForm({
   const [draft, setDraft] = useState<PerformanceAppraisalDraft>(() =>
     loadAppraisalDraft(employee, reviewCycle, performance, currentUserName || '')
   );
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   useEffect(() => {
     setDraft(loadAppraisalDraft(employee, reviewCycle, performance, currentUserName || ''));
@@ -195,6 +200,24 @@ export default function PerformanceAppraisalForm({
     const copy = actionCopy[action];
     const nextDraft = copy.status ? { ...draft, status: copy.status } : draft;
     persistDraft(nextDraft, action);
+  };
+
+  const downloadPdf = () => {
+    setIsDownloadingPdf(true);
+    try {
+      const filename = downloadAppraisalPdf({
+        draft,
+        scores,
+        mode,
+        ...getAppraisalPdfBranding(companyName),
+      });
+      onShowNotification('PDF Downloaded', `${filename} was downloaded as a local sandbox review copy.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The appraisal PDF could not be generated.';
+      onShowNotification('PDF Download Failed', message);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   const updateDraft = (updates: Partial<PerformanceAppraisalDraft>) => {
@@ -364,11 +387,14 @@ export default function PerformanceAppraisalForm({
         </button>
       )}
       <button
-        onClick={() => window.print()}
+        onClick={downloadPdf}
+        disabled={isDownloadingPdf}
         className="inline-flex items-center gap-2 rounded border border-neutral-border bg-surface-container px-3 py-2 text-xs font-bold text-on-surface transition-colors hover:bg-surface-container-high"
       >
-        <Printer className="h-3.5 w-3.5" />
-        Print / PDF
+        {isDownloadingPdf
+          ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+          : <Download className="h-3.5 w-3.5" />}
+        {isDownloadingPdf ? 'Preparing PDF...' : 'Download PDF'}
       </button>
     </div>
   );

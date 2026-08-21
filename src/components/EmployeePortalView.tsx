@@ -1611,6 +1611,7 @@ export default function EmployeePortalView({
           reviewCycle={effectiveReviewCycle}
           performance={selectedPerformance}
           mode="employee"
+          companyName={employeeEntity?.name}
           currentUserName={currentUserName || selectedEmployee.name}
           onSavePerformance={onSavePerformance}
           onShowNotification={onShowNotification}
